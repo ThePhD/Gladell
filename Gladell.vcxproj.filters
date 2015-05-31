@@ -47,5 +47,11 @@
     <ClInclude Include="hlsl\shaders\source.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="optional.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="unicode.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

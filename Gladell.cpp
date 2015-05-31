@@ -9,8 +9,8 @@ int main( int argc, char* argv[] ) {
 
 	string_view src = gld::hlsl::shaders::sm40_level_93::nymph_batch;
 
-	gld::hlsl::preprocessor::lexer lexpp;
-	auto tokens = lexpp(src);
+	gld::hlsl::preprocessor::lexer lexpp(src);
+	auto tokens = lexpp();
 	gld::hlsl::lexer lex;
 	lex(src);
 }

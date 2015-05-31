@@ -49,6 +49,7 @@ namespace gld { namespace hlsl {
 		preprocessor_line,
 		preprocessor_pragma,
 		preprocessor_error,
+		preprocessor_warning,
 		preprocessor_pragma_pack_matrix,
 		preprocessor_pragma_register_define,
 		preprocessor_pragma_warning,

@@ -82,7 +82,9 @@
     <ClInclude Include="hlsl\token.hpp" />
     <ClInclude Include="hlsl\token_id.hpp" />
     <ClInclude Include="int.hpp" />
+    <ClInclude Include="optional.hpp" />
     <ClInclude Include="string.hpp" />
+    <ClInclude Include="unicode.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Furrovine\Furrovine++\Furrovine++.Unicode.vcxproj">

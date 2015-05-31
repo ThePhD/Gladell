@@ -1,7 +1,9 @@
 #pragma once
 
 #include "../token.hpp"
-#include <Furrovine++/Unicode/properties.hpp>
+#include "../../optional.hpp"
+#include "../../string.hpp"
+#include "../../unicode.hpp"
 #include <map>
 #include <unordered_map>
 
@@ -9,46 +11,36 @@ namespace gld { namespace hlsl { namespace preprocessor {
 
 	class lexer {
 	private:
+		typedef decltype(std::declval<string_view>().cbegin()) iterator;
+		string_view source;
+		
+		iterator begin;
+		iterator end;
+		
+		iterator consumed;
+		code_point c;
+		occurrence consumedwhere;
+		bool consumedavailable;
+		
+		iterator peeked;
+		code_point p;
+		occurrence peekwhere;
+		bool peekedavailable;
+
+		
 		std::map<string, token_id> pragma;
 		std::unordered_map<string_view, token_id> keywords;
-
-		struct character_information {
-			code_point character;
-			occurrence where;
-			bool is_line_terminator;
-			bool is_whitespace;
-			bool line_whitespace;
-			bool id_start;
-			bool id_continue;
-			bool other_id_start;
-			bool other_id_continue;
-			bool xid_start;
-			bool xid_continue;
-			string_view chunk;
-
-			void set_character(code_point c) {
-				namespace Unicode = Furrovine::Unicode;
-				character = c;
-				is_line_terminator = Unicode::is_line_terminator(character);
-				is_whitespace = Unicode::is_white_space(character);
-				line_whitespace &= is_whitespace;
-				id_start = Unicode::ucd::is_id_start(character);
-				id_continue = Unicode::ucd::is_id_continue(character);
-				other_id_start = Unicode::ucd::is_other_id_start(character);
-				other_id_continue = Unicode::ucd::is_other_id_continue(character);
-				xid_start = Unicode::ucd::is_xid_start(character);
-				xid_continue = Unicode::ucd::is_xid_continue(character);
-			}
-		};
-
-		struct chunk_information {
-			character_type type;
-		};
+		std::vector<token> tokens;
 
 	public:
-		lexer() {
+		lexer(string_view source) 
+		: source(source), begin(source.cbegin()), end(source.cbegin()), 
+			consumed( source.cbegin() ), consumedavailable( true ),
+			peeked( source.cbegin() ), peekedavailable( true ) {
 			keywords.insert({
 				{ "#", token_id::hash },
+				{ "(", token_id::open_parenthesis },
+				{ ")", token_id::close_parenthesis },
 				{ "define", token_id::preprocessor_define },
 				{ "undef", token_id::preprocessor_undef },
 				{ "if", token_id::preprocessor_if },
@@ -71,114 +63,241 @@ namespace gld { namespace hlsl { namespace preprocessor {
 			});
 		}
 
-		std::vector<token> operator()(string_view source) {
-			std::vector<token> tokens;
-			tokens.emplace_back(token_id::stream_begin, occurrence(), null);
-			(*this)(source, tokens);
-			tokens.emplace_back(token_id::stream_end, occurrence(), null);
-			return tokens;
+		std::vector<token> operator()() {
+			tokens.emplace_back(token_id::stream_begin, consumedwhere, null);
+			lex();
+			tokens.emplace_back(token_id::stream_end, consumedwhere, null);
+			return std::move(tokens);
 		}
 
-		void operator() ( string_view source, std::vector<token>& tokens ) {
-			typedef decltype(source.cbegin()) iterator;
-			
-			auto begin = source.cbegin();
-			auto end = source.cend();
-			if (begin == end) {
-				return;
-			}
-			
-			std::array<character_information, 2> look = {};
-			look.fill({});
-			std::array<iterator, 2> lookit = {
-				begin,
-				begin,
-			};
-			std::array<bool, 2> lookitvalid = { };
-			lookitvalid.fill(true);
+		bool consumed_empty() const {
+			return !consumedavailable;
+		}
 
-			bool break_view = false;
+		bool peeked_empty() const {
+			return !peekedavailable;
+		}
 
-			// Our state setter for the loop: 
-			// fills the character information target
-			// with basic information
-			auto set_state = [&]() {
-				auto& targetit = lookit.back();
-				auto targetitafter = targetit;
-				bool& targetvalid = lookitvalid.back();
-				character_information& target = look.back();
-				targetvalid = targetit != end;
-				target.set_character(targetvalid ? *targetit : 0);
-				intz distance = targetvalid ? std::distance(begin.base(), targetit.base()) : target.where.offset;
-				intz distanceafter = targetvalid ? std::distance(begin.base(), (++targetitafter).base()) : target.where.offset_after;
-				intz moved = distanceafter - distance;
-				target.where.column += moved;
-				target.where.offset = distance;
-				target.where.offset_after = distanceafter;
-				if (target.is_line_terminator) {
-					++target.where.line;
-					++target.where.true_line;
-					target.where.column = 0;
-				}
-			};
-			// Our incrementation function for the loop
-			auto increment = [&]( ) {
-				for (intuz la = 0, last = look.size() - 1; la < last; ++la) {
-					look[la] = look[la + 1];
-					lookit[la] = lookit[la + 1];
-					lookitvalid[la] = lookitvalid[la + 1];
-				}
-				auto& targetit = lookit.back();
-				++targetit;
-				set_state();
-			};
-
-			// Now, the actual setup:
-			// We first set the character of our first "peek"
-			set_state();
-			// Then we set up the look ahead for 1, 2, 3, 4...
-			// of the array
-			for (intuz i = 1; i < look.size(); ++i) {
-				increment();
+		bool consume() {
+			if ( !consumedavailable ) {
+				c = static_cast<code_point>(-1);
+				return !consumed_empty();
 			}
 
-			// Now we're ready to roll
-			for ( intz lastbreak = 0; lookitvalid[0]; increment()) {
-				auto& targetit = lookit[0];
-				bool& targetvalid = lookitvalid[0];
-				character_information& target = look[0];
-				character_information& peek = look[1];
-				if (break_view) {
-					lastbreak = target.where.offset;
-					break_view = false;
-				}
-				target.chunk = source.substr(lastbreak, target.where.offset_after);
-				peek.chunk = source.substr(lastbreak, peek.where.offset_after);
+			++consumed;
+			auto saved = consumed;
+			++saved;
+			consumedwhere.offset = std::distance( begin.base(), consumed.base() );
+			consumedwhere.offset_after = std::distance( begin.base(), saved.base() );
+			consumedwhere.column += consumedwhere.offset_after - consumedwhere.offset;
+			consumedavailable = consumed != end;
+			c = *consumed;
+			return !consumed_empty();
+		}
 
-				if (target.is_line_terminator) {
-					if (target.character == '\r' && peek.character == '\n') {
+		bool peek() {
+			if ( !peekedavailable ) {
+				c = static_cast<code_point>(-1);
+				return !peeked_empty();
+			}
+
+			++peeked;
+			auto saved = peeked;
+			++saved;
+			peekwhere.offset = std::distance( begin.base(), peeked.base() );
+			peekwhere.offset_after = std::distance( begin.base(), saved.base() );
+			peekwhere.column += peekwhere.offset_after - peekwhere.offset;
+			peekedavailable = peeked != end;
+			c = *peeked;
+			return !peeked_empty();
+		}
+
+		bool consume_newlines() {
+			auto beginconsume = consumed;
+			bool foundnewline = false;
+			while ( !consumed_empty() && Unicode::is_line_terminator( c ) ) {
+				bool iscarriagereturn = c == '\r';
+				if ( consume() ) {
+					if ( iscarriagereturn && c == '\n' ) {
 						continue;
 					}
-					tokens.push_back(token(token_id::newline, target.where, target.chunk));
-					break_view = true;
 				}
-				else if (target.is_whitespace && !peek.is_whitespace) {
-					tokens.push_back(token(token_id::whitespace, target.where, target.chunk));
-					break_view = true;
+				++consumedwhere.line;
+				tokens.emplace_back( token_id::newline, consumedwhere, source.subview( beginconsume, consumed ) );
+				foundnewline = true;
+			}
+			return foundnewline;
+		}
+
+		bool consume_whitespace() {
+			auto beginconsume = consumed;
+			bool foundwhitespace = false;
+			while ( !consumed_empty() && Unicode::is_white_space( c ) ) {
+				if ( Unicode::is_line_terminator( c ) ) {
+					foundwhitespace |= consume_newlines();
+					beginconsume = consumed;
 				}
 				else {
-					auto keywordfind = keywords.find(target.chunk);
-					if (keywordfind != keywords.end()) {
-						tokens.push_back(token(keywordfind->second, target.where, target.chunk));
-						break_view = true;
-					}
-					else if (peek.is_whitespace) {
-						// TODO: separate identifiers from:
-						// string literals, numeric literals
-						tokens.push_back(token(token_id::identifier, target.where, target.chunk));
-						break_view = true;
-					}
+					consume();
 				}
+			}
+			if ( beginconsume != consumed ) {
+				tokens.emplace_back( token_id::whitespace, consumedwhere, source.subview( beginconsume, consumed ) );
+				foundwhitespace |= true;
+			}
+			return foundwhitespace;
+		}
+
+		bool consume_whitespace_notnewline() {
+			auto beginconsume = consumed;
+			while ( !consumed_empty() && Unicode::is_white_space( c ) 
+				&& !Unicode::is_line_terminator( c ) ) {
+				consume();
+			}
+			if ( beginconsume != consumed ) {
+				tokens.emplace_back( token_id::whitespace, consumedwhere, source.subview( beginconsume, consumed ) );
+				return true;
+			}
+			return false;
+		}
+
+		void consume_toplevel() {
+			consume_preprocessor();
+			
+		}
+
+		void consume_comment() {
+			auto beginconsume = consumed;
+			if ( c != '/' ) {
+				return;
+			}
+			consume();
+			if ( c == '/' ) {
+				consume();
+				tokens.emplace_back( token_id::line_comment, consumedwhere, source.subview( beginconsume, consumed ) );
+				beginconsume = consumed;
+				while ( !Unicode::is_line_terminator( c ) ) {
+					consume();
+				}
+				tokens.emplace_back( token_id::comment_text, consumedwhere, source.subview( beginconsume, consumed ) );
+			}
+			else if ( c == '*' ) {
+				consume();
+				tokens.emplace_back( token_id::block_comment_begin, consumedwhere, source.subview( beginconsume, consumed ) );
+				beginconsume = consumed;
+				peeked = consumed;
+				peek();
+				auto beginwhere = consumedwhere;
+				while ( !(p == '/' && c == '*') ) {
+					if ( !consumed_empty()
+						&& !peeked_empty() ) {
+						// TODO: if we reach the end of input, this is a lexing error
+						// e.g., no end of comment was found
+						// TODO: can you start a comment in one file, #include that file elsewhere,
+						// and then end the comment after the #include ? Must look into...
+					}
+					consume();
+					peek();
+				}
+				// Move the peak read head up by one
+				// so we can go from consumed, which is * to 1 past the /
+				peek();
+				tokens.emplace_back( token_id::comment_text, beginwhere, source.subview( beginconsume, consumed ) );
+				tokens.emplace_back( token_id::block_comment_end, consumedwhere, source.subview( consumed, peeked ) );
+			}
+		}
+
+		void consume_macro_line() {
+			while ( !Unicode::is_line_terminator( c ) ) {
+				consume_whitespace_notnewline();
+				consume_identifier();
+				consume_comment();
+			}
+			if ( c == '\\' ) {
+				consume();
+				if ( consume_newlines() ) {
+					// This macro has a newline 
+					// that is escaped goes directly to the next line
+					consume_macro_line();
+				}
+			}
+		}
+
+		void consume_pragma() {
+
+		}
+
+		void consume_macro( token_id preprocessorid ) {
+			switch ( preprocessorid ) {
+			case token_id::preprocessor_pragma:
+				consume_pragma();
+				break;
+			case token_id::preprocessor_include:
+				// TODO: should the lexer stream be
+				// modified to also preprocess included
+				// file streams?
+				// TODO: change out for better consumer
+				consume_macro_line();
+				break;
+			case token_id::preprocessor_error:
+			case token_id::preprocessor_warning:
+			case token_id::preprocessor_define:
+			case token_id::preprocessor_if:
+			case token_id::preprocessor_elif:
+			case token_id::preprocessor_else:
+			case token_id::preprocessor_endif:
+			case token_id::preprocessor_ifdef:
+			case token_id::preprocessor_ifndef:
+			case token_id::preprocessor_undef:
+			default:
+				// These macros can multiline
+				consume_macro_line();
+				break;
+			}
+		}
+
+		string_view consume_identifier() {
+			auto beginconsume = consumed;
+			if ( !Unicode::ucd::is_id_start( c ) ) {
+				return source.subview( beginconsume, consumed );
+			}
+			consume();
+			while ( Unicode::ucd::is_id_continue( c ) ) {
+				// Read the whole identifier text
+				consume();
+			}
+			return source.subview( beginconsume, consumed );
+		}
+
+		void consume_preprocessor() {
+			auto beginconsume = consumed;
+			if ( c != '#' )
+				return;
+			consume();
+			tokens.emplace_back( token_id::hash, consumedwhere, source.subview( beginconsume, consumed ) );
+			if ( consumed_empty() )
+				return;
+			
+			string_view identifier = consume_identifier();
+			if ( identifier.empty() )
+				return;
+			auto keywordsfind = keywords.find( identifier );
+			if ( keywordsfind == keywords.end() )
+				return;
+			tokens.emplace_back( keywordsfind->second, consumedwhere, identifier );
+			consume_macro( keywordsfind->second );
+		}
+
+		void lex ( ) {
+			if ( consumed_empty() ) {
+				return;
+			}
+			c = *consumed;
+
+			// Now we're ready to roll
+			for (; !consumed_empty() ;) {
+				consume_whitespace();
+				consume_toplevel();				
 			}
 		}
 	};

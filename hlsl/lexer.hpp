@@ -2,9 +2,9 @@
 
 #include "token.hpp"
 #include "../string.hpp"
+#include "../unicode.hpp"
 #include "../int.hpp"
 #include "../character_type.hpp"
-#include <Furrovine++/Unicode/properties.hpp>
 #include <unordered_map>
 
 namespace gld { namespace hlsl {
@@ -23,7 +23,7 @@ namespace gld { namespace hlsl {
 		struct character_state {
 			character_type character_type;
 			bool line_terminator;
-			occurrence where;
+			occurrence consumed_where;
 		};
 
 	public:
@@ -254,9 +254,9 @@ namespace gld { namespace hlsl {
 			state_routine s = state_routine::normal;
 			bool lasthardlinebreak = false;
 			bool hardlinebreak = false;
-			occurrence where = { 0, 0, 0 };
+			occurrence consumed_where = { 0, 0, 0 };
 			intz lastoffset = 0;
-			const intz& offset = where.offset;
+			const intz& offset = consumed_where.offset;
 
 			// Begin the process of walking the input
 			for (; it != end; ++it) {
@@ -265,11 +265,11 @@ namespace gld { namespace hlsl {
 				lasthardlinebreak = hardlinebreak;
 				hardlinebreak = Unicode::is_line_terminator(character);
 				if (hardlinebreak) {
-					++where.line;
-					where.column = 0;
+					++consumed_where.line;
+					consumed_where.column = 0;
 				}
 				else {
-					++where.column;
+					++consumed_where.column;
 				}
 
 				// Three potential states: 
