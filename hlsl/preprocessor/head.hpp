@@ -20,9 +20,12 @@ namespace gld { namespace hlsl {
 		bool line_whitespace;
 		bool previous_line_whitespace;
 
-		head( Iterator a ) : at( a ), after_at( a ),
-		available( true ), white_space( true ), 
-		line_terminator( false ), line_whitespace( false ) {
+		head( Iterator a ) : at( a ), after_at( a ), 
+		c( static_cast<code_point>( -1 ) ), after_c( static_cast<code_point>(-1) ),
+		where{},
+		available( true ),after_available( true ), 
+		white_space( true ), line_terminator( false ), compound_line_terminator( false ),
+		previous_line_whitespace( false ), line_whitespace( false ) {
 
 		}
 

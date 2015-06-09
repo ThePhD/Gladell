@@ -42,7 +42,7 @@ namespace gld { namespace hlsl {
 		semi_colon,
 		hash,
 		whitespace,
-		newline,
+		newlines,
 
 		// Preprocessor
 		preprocessor_block_begin,
@@ -449,8 +449,8 @@ namespace gld { namespace hlsl {
 			return "hash";
 		case token_id::whitespace:
 			return "whitespace";
-		case token_id::newline:
-			return "newline";
+		case token_id::newlines:
+			return "newlines";
 
 			// Preprocessor
 		case token_id::preprocessor_block_begin:

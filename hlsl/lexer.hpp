@@ -254,7 +254,7 @@ namespace gld { namespace hlsl {
 			state_routine s = state_routine::normal;
 			bool lasthardlinebreak = false;
 			bool hardlinebreak = false;
-			occurrence consumed_where = { 0, 0, 0 };
+			occurrence consumed_where = {};
 			intz lastoffset = 0;
 			const intz& offset = consumed_where.offset;
 

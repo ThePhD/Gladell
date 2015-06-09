@@ -80,6 +80,7 @@
     <ClInclude Include="hlsl\lex_error.hpp" />
     <ClInclude Include="hlsl\occurrence.hpp" />
     <ClInclude Include="hlsl\preprocessor\head.hpp" />
+    <ClInclude Include="hlsl\preprocessor\lex.hpp" />
     <ClInclude Include="hlsl\preprocessor\lexer.hpp" />
     <ClInclude Include="hlsl\shaders\source.hpp" />
     <ClInclude Include="hlsl\token.hpp" />
@@ -89,6 +90,7 @@
     <ClInclude Include="lexical_character_format.hpp" />
     <ClInclude Include="lexical_numeric_format.hpp" />
     <ClInclude Include="optional.hpp" />
+    <ClInclude Include="range.hpp" />
     <ClInclude Include="string.hpp" />
     <ClInclude Include="unicode.hpp" />
     <ClInclude Include="unit.hpp" />

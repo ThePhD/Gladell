@@ -1,6 +1,6 @@
+#include "range.hpp"
 #include "hlsl/shaders/source.hpp"
-#include "hlsl/lexer.hpp"
-#include "hlsl/preprocessor/lexer.hpp"
+#include "hlsl/preprocessor/lex.hpp"
 #include <jsonpp/jsonpp.hpp>
 #include <fstream>
 
@@ -35,25 +35,36 @@ inline json::value to_json( const gld::hlsl::token& t ) {
 	return v;
 }
 
-template <typename Range>
-void json_print( Range&& tokens ) {
-	std::string data = json::dump_string( tokens, json::format_options( 5, json::format_options::none ) );
-	std::ofstream output( "tokens.json" );
+template <typename T>
+inline json::value to_json( const gld::buffer_view<T>& b ) {
+	return json::array( b.begin(), b.end() );
+}
+
+inline json::value to_json( const std::pair<gld::string_view, gld::buffer_view<gld::hlsl::token>>& p ) {
+	json::object v( {
+		{ "source", p.first },
+		{ "tokens", p.second }
+	} );
+	return v;
+}
+
+void json_print( gld::string_view name, gld::string_view source, gld::buffer_view<gld::hlsl::token> tokens ) {
+	std::string data = json::dump_string( std::make_pair( source, tokens ), json::format_options( 5, json::format_options::none ) );
+	std::ofstream output( name.c_str() );
 	output << data << std::endl;
+}
+
+void lex_print( gld::string_view name, gld::string_view source ) {
+	auto tokens = gld::hlsl::preprocessor::lex( source );
+	json_print( name, source, tokens );
 }
 
 int main( int argc, char* argv[] ) {
 	using string = Furrovine::string;
 	using string_view = Furrovine::string_view;
 	std::vector<string_view> arguments(argv, argv + argc);
-
-	string_view src =
-#if 0
-		gld::hlsl::shaders::sm40_level_93::nymph_batch;
-#else
-		gld::hlsl::shaders::fluff::pre_processing;
-#endif
-	gld::hlsl::preprocessor::lexer lexpp(src);
-	auto tokens = lexpp();
-	json_print( tokens );
+	
+	lex_print( "pp.fluff.pre_processing.json", gld::hlsl::shaders::fluff::pre_processing );
+	lex_print( "pp.nymphbatch.json", gld::hlsl::shaders::sm40_level_93::nymph_batch );
+	
 }

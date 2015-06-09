@@ -77,5 +77,11 @@
     <ClInclude Include="inclusion_style.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="range.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hlsl\preprocessor\lex.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

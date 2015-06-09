@@ -45,7 +45,7 @@ namespace gld { namespace hlsl { namespace preprocessor {
 			inmacro( false ),
 			escaped( false ),
 			escapecount( 0 ) {
-
+			
 			symbolcharacters.insert( {
 				{ '#' },
 				{ '@' },
@@ -118,6 +118,13 @@ namespace gld { namespace hlsl { namespace preprocessor {
 		void update( read_head& r ) const {
 			r.after_available = r.available = r.at != end;
 			if ( !r.available ) {
+				r.c = static_cast<code_point>(-1);
+				r.after_c = static_cast<code_point>(-1);
+				r.previous_line_whitespace = r.line_whitespace;
+				r.line_whitespace = false;
+				r.white_space = false;
+				r.line_terminator = false;
+				r.compound_line_terminator = false;
 				return;
 			}
 			r.after_at = r.at;
@@ -128,7 +135,6 @@ namespace gld { namespace hlsl { namespace preprocessor {
 			}
 			r.where.offset = std::distance( begin.base(), r.at.base() );
 			r.where.offset_after = std::distance( begin.base(), r.after_at.base() );
-			r.where.column += r.where.offset_after - r.where.offset;
 			r.c = *r.at;
 			r.line_terminator = Unicode::is_line_terminator( r.c );
 			r.white_space = r.line_terminator || Unicode::is_white_space( r.c );
@@ -141,21 +147,22 @@ namespace gld { namespace hlsl { namespace preprocessor {
 				r.compound_line_terminator = r.c == '\r' &&
 					r.after_available && r.after_c == '\n';
 				r.line_whitespace = true;
-				++r.where.line;
-				++r.where.processed_line;
-				r.where.column = 0;
 			}
 		}
 
 		bool advance( read_head& r ) const {
 			if ( !r.available ) {
-				r.c = static_cast<code_point>(-1);
-				r.line_whitespace = false;
-				r.white_space = false;
-				r.line_terminator = false;
 				return false;
 			}
+			if ( r.line_terminator ) {
+				if ( !r.compound_line_terminator ) {
+					++r.where.line;
+					++r.where.processed_line;
+					r.where.column = 0;
+				}
+			}
 			++r.at;
+			++r.where.column;
 			update( r );
 			return true;
 		}
@@ -193,6 +200,7 @@ namespace gld { namespace hlsl { namespace preprocessor {
 
 		bool consume_newlines( bool addtokens = true ) {
 			auto beginat = consumed.at;
+			auto beginwhere = consumed.where;
 			bool foundnewline = false;
 			for ( ; consumed.available && consumed.line_terminator; consume() ) {
 				if ( consumed.compound_line_terminator ) {
@@ -200,13 +208,14 @@ namespace gld { namespace hlsl { namespace preprocessor {
 				}
 				foundnewline = true;
 			}
-			if ( addtokens && beginat != consumed.at )
-				tokens.emplace_back( token_id::newline, consumed.where, source.subview( beginat, consumed.at ) );
+			if ( addtokens && foundnewline )
+				tokens.emplace_back( token_id::newlines, beginwhere, source.subview( beginat, consumed.at ) );
 			return foundnewline;
 		}
 
 		bool consume_whitespace() {
 			auto beginat = consumed.at;
+			auto beginwhere = consumed.where;
 			bool foundwhitespace = false;
 			while ( consumed.available && consumed.white_space ) {
 				if ( consumed.line_terminator ) {
@@ -218,7 +227,7 @@ namespace gld { namespace hlsl { namespace preprocessor {
 				}
 			}
 			if ( beginat != consumed.at ) {
-				tokens.emplace_back( token_id::whitespace, consumed.where, source.subview( beginat, consumed.at ) );
+				tokens.emplace_back( token_id::whitespace, beginwhere, source.subview( beginat, consumed.at ) );
 				foundwhitespace |= true;
 			}
 			return foundwhitespace;
@@ -404,10 +413,11 @@ namespace gld { namespace hlsl { namespace preprocessor {
 
 		void consume_preprocessor() {
 			auto beginat = consumed.at;
+			auto beginwhere = consumed.where;
 			if ( consumed.c != '#' )
 				return;
 			consume();
-			tokens.emplace_back( token_id::hash, consumed.where, source.subview( beginat, consumed.at ) );
+			tokens.emplace_back( token_id::hash, beginwhere, source.subview( beginat, consumed.at ) );
 			if ( !consumed.available ) {
 				// TODO: throw lex error or
 				// let parser catch Unexpected Stream End?
@@ -415,6 +425,7 @@ namespace gld { namespace hlsl { namespace preprocessor {
 			}
 			consume_whitespace_notnewline();
 			sync_peeked( consumed );
+			beginwhere = consumed.where;
 			string_view keyword = peek_non_whitespace();
 			if ( keyword.empty() ) {
 				// TODO: throw lex error or
@@ -428,7 +439,7 @@ namespace gld { namespace hlsl { namespace preprocessor {
 				// Bad keyword for preprocessor (only pragmas can handle unknown preprocessors, right?)
 				throw lex_error();
 			}
-			tokens.emplace_back( keywordsfind->second, consumed.where, keyword );
+			tokens.emplace_back( keywordsfind->second, beginwhere, keyword );
 			consume_macro( keywordsfind->second );
 		}
 
@@ -970,6 +981,10 @@ namespace gld { namespace hlsl { namespace preprocessor {
 				case ';':
 					consume();
 					tokens.emplace_back( token_id::semi_colon, beginwhere, source.subview( beginat, consumed.at ) );
+					break;
+				case ':':
+					consume();
+					tokens.emplace_back( token_id::colon, beginwhere, source.subview( beginat, consumed.at ) );
 					break;
 				case '.':
 					consume();
