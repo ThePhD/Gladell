@@ -1,0 +1,22 @@
+S -> Sequence
+Sequence -> LineTerminator [Whitespace] # [Whitespace] Preprocessor
+Sequence -> [Whitespace] Identifier
+Sequence -> [Whitespace] Sequence
+Preprocessor -> define [Whitespace] Function
+Preprocessor -> define [Whitespace] Variable
+Function -> ( Identifier ) Expression
+Preprocessor -> if [Whitespace] Expression
+Preprocessor -> ifdef [Whitespace]
+Preprocessor -> ifndef [Whitespace]
+Preprocessor -> elif [Whitespace]
+Preprocessor -> else [Whitespace]
+Preprocessor -> endif [Whitespace]
+Preprocessor -> undef [Whitespace]
+Preprocessor ->  [Whitespace]
+Preprocessor -> undef [Whitespace]
+Preprocessor -> undef [Whitespace]
+Preprocessor -> pragma [Pragma]
+Pragma -> [Whitespace]pack_matrix[Whitespace]([Whitespace]column_major|row_major[Whitespace])
+Pragma -> [Whitespace]warning[Whitespace]([Whitespace]column_major|row_major[Whitespace])
+Pragma -> [Whitespace]message[Whitespace]([Whitespace]column_major|row_major[Whitespace])
+Pragma -> [Whitespace]error[Whitespace]([Whitespace][column_major|row_major][Whitespace])

@@ -1,6 +1,7 @@
 #include "range.hpp"
 #include "hlsl/shaders/source.hpp"
 #include "hlsl/preprocessor/lex.hpp"
+#include "hlsl/preprocessor/parse.hpp"
 #include <jsonpp/jsonpp.hpp>
 #include <fstream>
 
@@ -56,6 +57,7 @@ void json_print( gld::string_view name, gld::string_view source, gld::buffer_vie
 
 void lex_print( gld::string_view name, gld::string_view source ) {
 	auto tokens = gld::hlsl::preprocessor::lex( source );
+	gld::hlsl::preprocessor::parse( tokens );
 	json_print( name, source, tokens );
 }
 

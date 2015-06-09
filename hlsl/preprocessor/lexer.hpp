@@ -1,8 +1,8 @@
 #pragma once
 
-#include "head.hpp"
+#include "../lexer_head.hpp"
 #include "../token.hpp"
-#include "../lex_error.hpp"
+#include "../lexer_error.hpp"
 #include "../../optional.hpp"
 #include "../../string.hpp"
 #include "../../unicode.hpp"
@@ -20,7 +20,7 @@ namespace gld { namespace hlsl { namespace preprocessor {
 	private:
 		typedef string_view view_type;
 		typedef decltype(std::declval<view_type>().cbegin()) iterator;
-		typedef head<iterator> read_head;
+		typedef lexer_head<iterator> read_head;
 		string_view source;
 		
 		iterator begin;
@@ -297,7 +297,7 @@ namespace gld { namespace hlsl { namespace preprocessor {
 						// No, you can't, because the #include for a block comment would
 						// be considered a comment, not a preprocessing directive
 						// TODO: actually write a proper error here...
-						throw lex_error();
+						throw lexer_error();
 					}
 					if ( Unicode::is_line_terminator( consumed.c ) ) {
 						consume_newlines( false );
@@ -313,7 +313,7 @@ namespace gld { namespace hlsl { namespace preprocessor {
 			default:
 				// TODO: proper error
 				// Bad comment token id
-				throw lex_error();
+				throw lexer_error();
 				break;
 			}
 		}
@@ -363,7 +363,7 @@ namespace gld { namespace hlsl { namespace preprocessor {
 				// warning and error report mechanics...
 				// TODO: proper warning of
 				// "pragma contains unknown directive"
-				// throw lex_error();
+				// throw lexer_error();
 			}
 			else {
 				tokenid = pragmafind->second;
@@ -437,7 +437,7 @@ namespace gld { namespace hlsl { namespace preprocessor {
 			if ( keywordsfind == keywords.end() ) {
 				// TODO: proper lex error
 				// Bad keyword for preprocessor (only pragmas can handle unknown preprocessors, right?)
-				throw lex_error();
+				throw lexer_error();
 			}
 			tokens.emplace_back( keywordsfind->second, beginwhere, keyword );
 			consume_macro( keywordsfind->second );
@@ -811,9 +811,12 @@ namespace gld { namespace hlsl { namespace preprocessor {
 		}
 
 		void consume_identifier() {
+			auto beginat = consumed.at;
 			auto beginwhere = consumed.where;
-			string_view identifier = read_identifier( consumed );
+			sync_peeked( consumed );
+			string_view identifier = read_identifier( peeked );
 			if ( !identifier.empty() ) {
+				sync_consumed( peeked );
 				auto keywordsfind = keywords.find( identifier );
 				if ( keywordsfind != keywords.end() ) {
 					tokens.emplace_back( keywordsfind->second, beginwhere, identifier );
@@ -822,6 +825,8 @@ namespace gld { namespace hlsl { namespace preprocessor {
 				tokens.emplace_back( token_id::identifier, beginwhere, identifier );
 				return;
 			}
+			consume();
+			tokens.emplace_back( token_id::identifier, beginwhere, source.subview( beginat, consumed.at ) );
 		}
 
 		void lex ( ) {

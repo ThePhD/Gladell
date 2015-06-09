@@ -3,7 +3,7 @@
 
 namespace gld { namespace hlsl { 
 
-	struct lex_error : public std::exception {
+	struct lexer_error : public std::exception {
 
 	};
 

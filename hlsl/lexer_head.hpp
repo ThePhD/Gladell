@@ -1,12 +1,12 @@
 #pragma once
 
-#include "../occurrence.hpp"
-#include "../../string.hpp"
+#include "occurrence.hpp"
+#include "../string.hpp"
 
 namespace gld { namespace hlsl { 
 
 	template <typename Iterator>
-	struct head {
+	struct lexer_head {
 		Iterator at;
 		Iterator after_at;
 		code_point c;
@@ -20,7 +20,7 @@ namespace gld { namespace hlsl {
 		bool line_whitespace;
 		bool previous_line_whitespace;
 
-		head( Iterator a ) : at( a ), after_at( a ), 
+		lexer_head( Iterator a ) : at( a ), after_at( a ), 
 		c( static_cast<code_point>( -1 ) ), after_c( static_cast<code_point>(-1) ),
 		where{},
 		available( true ),after_available( true ), 

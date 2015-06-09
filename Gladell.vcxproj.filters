@@ -50,15 +50,6 @@
     <ClInclude Include="unicode.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="hlsl\head.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="hlsl\lex_error.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="hlsl\preprocessor\head.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="lexical_numeric_format.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -81,6 +72,21 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="hlsl\preprocessor\lex.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hlsl\preprocessor\parse.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hlsl\preprocessor\parser.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hlsl\lexer_head.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hlsl\lexer_error.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hlsl\parser_error.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

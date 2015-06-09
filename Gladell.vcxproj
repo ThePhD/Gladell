@@ -75,13 +75,15 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="character_type.hpp" />
-    <ClInclude Include="hlsl\head.hpp" />
+    <ClInclude Include="hlsl\lexer_head.hpp" />
     <ClInclude Include="hlsl\lexer.hpp" />
-    <ClInclude Include="hlsl\lex_error.hpp" />
+    <ClInclude Include="hlsl\lexer_error.hpp" />
     <ClInclude Include="hlsl\occurrence.hpp" />
-    <ClInclude Include="hlsl\preprocessor\head.hpp" />
+    <ClInclude Include="hlsl\parser_error.hpp" />
     <ClInclude Include="hlsl\preprocessor\lex.hpp" />
     <ClInclude Include="hlsl\preprocessor\lexer.hpp" />
+    <ClInclude Include="hlsl\preprocessor\parse.hpp" />
+    <ClInclude Include="hlsl\preprocessor\parser.hpp" />
     <ClInclude Include="hlsl\shaders\source.hpp" />
     <ClInclude Include="hlsl\token.hpp" />
     <ClInclude Include="hlsl\token_id.hpp" />
