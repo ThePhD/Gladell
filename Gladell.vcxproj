@@ -47,7 +47,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\Furrovine\Furrovine++\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>vendor\;..\..\Furrovine\Furrovine++\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>FURROVINEDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -61,7 +61,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\Furrovine\Furrovine++\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>vendor\;..\..\Furrovine\Furrovine++\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>FURROVINEDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -75,16 +75,24 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="character_type.hpp" />
+    <ClInclude Include="hlsl\head.hpp" />
     <ClInclude Include="hlsl\lexer.hpp" />
+    <ClInclude Include="hlsl\lex_error.hpp" />
     <ClInclude Include="hlsl\occurrence.hpp" />
+    <ClInclude Include="hlsl\preprocessor\head.hpp" />
     <ClInclude Include="hlsl\preprocessor\lexer.hpp" />
     <ClInclude Include="hlsl\shaders\source.hpp" />
     <ClInclude Include="hlsl\token.hpp" />
     <ClInclude Include="hlsl\token_id.hpp" />
-    <ClInclude Include="int.hpp" />
+    <ClInclude Include="inclusion_style.hpp" />
+    <ClInclude Include="numeric.hpp" />
+    <ClInclude Include="lexical_character_format.hpp" />
+    <ClInclude Include="lexical_numeric_format.hpp" />
     <ClInclude Include="optional.hpp" />
     <ClInclude Include="string.hpp" />
     <ClInclude Include="unicode.hpp" />
+    <ClInclude Include="unit.hpp" />
+    <ClInclude Include="variant.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Furrovine\Furrovine++\Furrovine++.Unicode.vcxproj">

@@ -1,13 +1,13 @@
 #pragma once
 
-#include "../int.hpp"
+#include "../numeric.hpp"
 
 namespace gld { namespace hlsl {
 
 	struct occurrence {
 		intz offset;
 		intz offset_after;
-		intz true_line;
+		intz processed_line;
 		intz line;
 		intz column;
 	};

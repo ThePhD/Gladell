@@ -3,7 +3,7 @@
 #include "token.hpp"
 #include "../string.hpp"
 #include "../unicode.hpp"
-#include "../int.hpp"
+#include "../numeric.hpp"
 #include "../character_type.hpp"
 #include <unordered_map>
 
@@ -222,7 +222,7 @@ namespace gld { namespace hlsl {
 
 				{ "/*", token_id::block_comment_begin }, // TODO: Move to basic per-character processor?
 				{ "*/", token_id::block_comment_end },
-				{ "//", token_id::line_comment },
+				{ "//", token_id::line_comment_begin },
 
 				{ "#line", token_id::preprocessor_line },
 

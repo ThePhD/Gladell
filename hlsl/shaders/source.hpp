@@ -2,8 +2,42 @@
 
 #include "../../string.hpp"
 
-namespace gld { namespace hlsl { namespace shaders { namespace sm40_level_93 {
+namespace gld { namespace hlsl { namespace shaders { 
 
+	namespace fluff {
+		string_view pre_processing = R"(
+#define a b
+#define c( d ) e
+#define f(g) h
+#define i(j)k
+#include "file.jk"
+#pragma pack_matrix ( row_major )
+#ifdef MEOW
+invalid invalid invalid 4kjfwh
+#else
+#define MEOW_IS_DEFINED
+#endif
+
+#if defined(ARF) && ARF < 245
+#define ARF_LESS_THAN_245
+#elif defined(BARK) && BARK > 245
+#define BARK_GREATER_THAN_245
+#endif // ARF/BARK
+
+#define song do\
+re\
+mi\
+fa\
+so\
+la\
+ti\
+dooo!
+
+)";
+	}
+
+	namespace sm40_level_93 {
+		
 	string_view nymph_batch = R"(
 #define vec2 float2
 #define vec3 float3

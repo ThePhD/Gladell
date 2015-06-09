@@ -29,9 +29,6 @@
     <ClInclude Include="hlsl\token.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="int.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="character_type.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -51,6 +48,33 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="unicode.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hlsl\head.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hlsl\lex_error.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hlsl\preprocessor\head.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="lexical_numeric_format.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="lexical_character_format.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="variant.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="unit.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="numeric.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="inclusion_style.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
