@@ -13,7 +13,7 @@ inline json::value to_json( gld::intz n ) {
 }
 
 inline json::value to_json( const gld::string_view& s ) {
-	return { s.data(), s.data_end() };
+	return json::value( s.data(), s.data_end() );
 }
 
 inline json::value to_json( const gld::hlsl::occurrence& o ) {
