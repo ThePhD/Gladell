@@ -1,22 +1,45 @@
+===========================
+Core Rules
+===========================
+
+LineTerminator -> unicode.line_terminator
+Whitespace -> unicode.is_whitespace|Comment
+
+Comment -> / / Anything LineTerminator
+Comment -> / * Anything * /
+
+Operators -> ##, #@, |, ^, &, &&, ||, ::, :, <<, <<=, >>, >>=, ..., <=, >=, ==, !=, *, /, +, -, %
+
+Variable -> [Whitespace] Identifier
+Arguments -> Variable [Whitespace] ,
+Function -> [Whitespace] ( [Whitespace] Arguments+ [Whitespace] ) [Whitespace] Expression
+
+Expression -> Operators|Identifier|String|Float|Integer [\ LineTerminator Expression]
+ControlExpression -> [\ LineTerminator ControlExpression]
+
+============================
+Language Production Rules
+============================
+
 S -> Sequence
 Sequence -> LineTerminator [Whitespace] # [Whitespace] Preprocessor
 Sequence -> [Whitespace] Identifier
 Sequence -> [Whitespace] Sequence
 Preprocessor -> define [Whitespace] Function
-Preprocessor -> define [Whitespace] Variable
-Function -> ( Identifier ) Expression
-Preprocessor -> if [Whitespace] Expression
-Preprocessor -> ifdef [Whitespace]
-Preprocessor -> ifndef [Whitespace]
-Preprocessor -> elif [Whitespace]
+Preprocessor -> define [Whitespace] Variable Expression 
+Preprocessor -> if [Whitespace] ControlExpression
+Preprocessor -> ifdef [Whitespace] Variable [Whitespace ControlExpression]
+Preprocessor -> ifndef [Whitespace] Variable [Whitespace ControlExpression]
+Preprocessor -> elif [Whitespace] ControlExpression
 Preprocessor -> else [Whitespace]
 Preprocessor -> endif [Whitespace]
-Preprocessor -> undef [Whitespace]
-Preprocessor ->  [Whitespace]
-Preprocessor -> undef [Whitespace]
-Preprocessor -> undef [Whitespace]
-Preprocessor -> pragma [Pragma]
-Pragma -> [Whitespace]pack_matrix[Whitespace]([Whitespace]column_major|row_major[Whitespace])
-Pragma -> [Whitespace]warning[Whitespace]([Whitespace]column_major|row_major[Whitespace])
-Pragma -> [Whitespace]message[Whitespace]([Whitespace]column_major|row_major[Whitespace])
-Pragma -> [Whitespace]error[Whitespace]([Whitespace][column_major|row_major][Whitespace])
+Preprocessor -> undef [Whitespace] Variable
+Preprocessor -> include [Whitespace] Expression
+Preprocessor -> undef [Whitespace] Expression
+Preprocessor -> line [Whitespace] Expression
+Preprocessor -> pragma [Pragma] Expression
+
+Pragma -> [Whitespace] pack_matrix [Whitespace] ( [Whitespace] column_major|row_major [Whitespace] )
+Pragma -> [Whitespace] warning [Whitespace] ( [Whitespace]  [Whitespace] )
+Pragma -> [Whitespace] message [Whitespace] ( [Whitespace]  [Whitespace] )
+Pragma -> [Whitespace] error [Whitespace] ( [Whitespace]  [Whitespace] )

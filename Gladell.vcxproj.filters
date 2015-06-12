@@ -90,4 +90,8 @@
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="hlsl\hlsl.preprocessor.grammar" />
+    <None Include="hlsl\hlsl.grammar" />
+  </ItemGroup>
 </Project>

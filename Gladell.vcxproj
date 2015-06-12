@@ -106,6 +106,10 @@
       <Project>{46eb64eb-010e-43ad-b3bc-1091df7239fa}</Project>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="hlsl\hlsl.grammar" />
+    <None Include="hlsl\hlsl.preprocessor.grammar" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
