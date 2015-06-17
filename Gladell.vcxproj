@@ -47,7 +47,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>vendor\;..\..\Furrovine\Furrovine++\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>vendor\;vendor\Furrovine++.Heart\include;vendor\Furrovine++.Unicode\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>FURROVINEDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -61,7 +61,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>vendor\;..\..\Furrovine\Furrovine++\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>vendor\;vendor\Furrovine++.Heart\include;vendor\Furrovine++.Unicode\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>FURROVINEDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -80,10 +80,12 @@
     <ClInclude Include="hlsl\lexer_error.hpp" />
     <ClInclude Include="hlsl\occurrence.hpp" />
     <ClInclude Include="hlsl\parser_error.hpp" />
+    <ClInclude Include="hlsl\preprocessor\construct.hpp" />
     <ClInclude Include="hlsl\preprocessor\lex.hpp" />
     <ClInclude Include="hlsl\preprocessor\lexer.hpp" />
     <ClInclude Include="hlsl\preprocessor\parse.hpp" />
     <ClInclude Include="hlsl\preprocessor\parser.hpp" />
+    <ClInclude Include="hlsl\parser_head.hpp" />
     <ClInclude Include="hlsl\shaders\source.hpp" />
     <ClInclude Include="hlsl\token.hpp" />
     <ClInclude Include="hlsl\token_id.hpp" />
@@ -99,16 +101,16 @@
     <ClInclude Include="variant.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Furrovine\Furrovine++\Furrovine++.Unicode.vcxproj">
-      <Project>{2c419993-3f86-49c6-8e69-7e7a05514ab7}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\Furrovine\Furrovine++\Furrovine++.vcxproj">
-      <Project>{46eb64eb-010e-43ad-b3bc-1091df7239fa}</Project>
-    </ProjectReference>
+    <None Include="hlsl\hlsl.grammar" />
+    <None Include="hlsl\preprocessor\hlsl.preprocessor.grammar" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="hlsl\hlsl.grammar" />
-    <None Include="hlsl\hlsl.preprocessor.grammar" />
+    <ProjectReference Include="vendor\Furrovine++.Heart\Furrovine++.Heart.vcxproj">
+      <Project>{d4d6b539-dc7e-444a-9381-1ef652fe5c38}</Project>
+    </ProjectReference>
+    <ProjectReference Include="vendor\Furrovine++.Unicode\Furrovine++.Unicode.vcxproj">
+      <Project>{2c419993-3f86-49c6-8e69-7e7a05514ab7}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

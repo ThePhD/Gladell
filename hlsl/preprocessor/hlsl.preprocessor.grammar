@@ -1,0 +1,54 @@
+﻿===========================
+Core Rules
+===========================
+
+LineTerminator -> unicode.line_terminator
+Comment -> / / Anything LineTerminator
+Comment -> / * Anything * /
+Whitespace -> unicode.is_whitespace|Comment
+
+Operator -> ##, #@, |, ^, &, &&, ||, <<, >>, ..., <=, >=, ==, !=, *, /, +, -, %
+
+Identifier -> unicode.is_xid_start [unicode.is_xid_continue+]
+Escaped-Character -> \ b|a|f|n|r|t|v|"|'|\|x#|###|b#|
+Character -> Escaped-Character|codepoint
+Characters -> Character+
+Digit -> 0|1|2|3|4|5|6|7|8|9
+Digits -> Digit+
+StringLiteral -> " Characters "
+IntegerLiteral -> [-|+] Digit+
+FloatLiteral -> [-|+] Digits [. Digits]|[. Digits e|E [+|-] Digits]
+
+BinaryExpression -> [(] Identifier [Whitespace] Operator [Whitespace] Identifier [)]
+Expression -> [(] BinaryExpression|Identifier|StringLiteral|FloatLiteral|IntegerLiteral [)] [\ LineTerminator [Whitespace] Expression]
+
+Arguments -> [Whitespace] Identifier [Whitespace] [, [Whitespace] Identifier]
+Function -> [Whitespace] ( [Whitespace] Arguments [Whitespace] ) [Whitespace] Expression
+FuntionDeclaration -> [Whitespace] Identifier [Whitespace] Function
+
+============================
+Language Production Rules
+============================
+
+S -> Sequence
+Sequence -> LineTerminator [Whitespace] # [Whitespace] Preprocessor Sequence
+Sequence -> [Whitespace] Identifier Sequence
+Sequence -> [Whitespace] Sequence
+Sequence -> ε
+Preprocessor -> define [Whitespace] FunctionDeclaration
+Preprocessor -> define [Whitespace] Variable Expression 
+Preprocessor -> if [Whitespace] ControlExpression
+Preprocessor -> ifdef [Whitespace] Variable [Whitespace ControlExpression]
+Preprocessor -> ifndef [Whitespace] Variable [Whitespace ControlExpression]
+Preprocessor -> elif [Whitespace] ControlExpression
+Preprocessor -> else [Whitespace]
+Preprocessor -> endif [Whitespace]
+Preprocessor -> undef [Whitespace] Variable
+Preprocessor -> include [Whitespace] (" Characters ")|(< Characters >)
+Preprocessor -> line [Whitespace] IntegerLiteral [Whitespace] StringLiteral
+Preprocessor -> pragma Pragma
+
+Pragma -> [Whitespace] pack_matrix [Whitespace] ( [Whitespace] column_major|row_major [Whitespace] )
+Pragma -> [Whitespace] warning [Whitespace] ( WarningSpecifier [Whitespace] : [Whitespace] WarningNumberList [Whitespace] [; WarningSpecifier [Whitespace] : [Whitespace] WarningNumberList [Whitespace] ]+ )
+Pragma -> [Whitespace] message [Whitespace] [StringLiteral]
+Pragma -> [Whitespace] def [Whitespace] ( [Whitespace]DefTarget [Whitespace] , [Whitespace] DefRegister [Whitespace] , [Whitespace] Value [Whitespace] , [Whitespace] Value [Whitespace] , [Whitespace] Value [Whitespace] , [Whitespace] Value [Whitespace] )

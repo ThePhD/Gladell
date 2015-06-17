@@ -1,71 +1,165 @@
 #pragma once
 
+#include "construct.hpp"
 #include "../token.hpp"
+#include "../parser_head.hpp"
 #include "../parser_error.hpp"
 #include "../../string.hpp"
 #include "../../range.hpp"
-#include "../../lexical_numeric_format.hpp"
-#include "../../lexical_character_format.hpp"
-#include <vector>
 
 namespace gld { namespace hlsl { namespace preprocessor {
 
-	struct sequence {
-		buffer_view<token> tokens;
-	};
-
-	struct symbol : sequence {
-		std::reference_wrapper<token> name;
-	};
-
-	struct definition : symbol {
-		std::vector<std::reference_wrapper<token>> parameters;
-		variant<unit,
-			symbol,
-			string_view,
-			bool,
-			uint8, uint16, uint32, uint64,
-			int8, int16, int32, int64,
-			code_point,
-			half, float, double> value;
-	};
-
-	struct expression : sequence {
-
-	};
-
-	struct conditional : sequence {
-		std::vector<std::reference_wrapper<token>> expression;
-	};
-
-	struct inclusion : sequence {
-
-	};
-	
-	struct scope {
-		conditional condition;
-		std::vector<definition> defines;
-		std::vector<inclusion> includes;
-		std::vector<definition> defines;
-	};
-
-	struct top_level {
-		string data;
-		std::vector<scope> scopes;
-	};
-
 	class parser {
 	private:
-		buffer_view<token> tokens;
+		typedef buffer_view<token> view_type;
+		typedef Furrovine::tmp::range_cbegin_type_t<view_type> begin_iterator;
+		typedef Furrovine::tmp::range_cend_type_t<view_type> end_iterator;
+		typedef begin_iterator iterator;
+		typedef parser_head<iterator> read_head;
+
+		view_type source;
+		iterator begin;
+		end_iterator end;
+
+		read_head consumed;
+
 		top_level toplevel;
-
+		std::reference_wrapper<scope> targetscope;
+		
 	public:
-		parser( buffer_view<token> tokenview ) : tokens( std::move( tokenview ) ) {
+		parser( buffer_view<token> tokens ) : source( std::move( tokens ) ),
+		begin( adl_cbegin( source ) ), end( adl_cend( source ) ),
+		consumed( begin ),
+		toplevel( source ), targetscope( toplevel.scopes.back() ) {
+			
+		}
 
+		bool update( read_head& r ) {
+			r.available = r.at == end;
+			if ( !r.available ) {
+				return false;
+			}
+			r.t = *r.at;
+			r.prevlinewhitespace = r.linewhitespace;
+			switch ( r.t.get().id ) {
+			case token_id::newlines:
+				r.linewhitespace = true;
+				break;
+			case token_id::comment_text:
+			case token_id::block_comment_begin:
+			case token_id::block_comment_end:
+			case token_id::line_comment_begin:
+			case token_id::line_comment_end:
+			case token_id::whitespace:
+			case token_id::preprocessor_escaped_newline:
+				break;
+			default:
+				r.linewhitespace = false;
+				break;
+			}
+			return true;
+		}
+
+		bool advance( read_head& r ) {
+			if ( !r.available ) {
+				return false;
+			}
+			++r.at;
+			update( r );
+			return true;
+		}
+
+		bool consume() { 
+			return advance( consumed ); 
+		}
+
+		bool consume_whitespace() {
+			for ( ; consumed.available; ) {
+				const token& t = consumed.t;
+				switch ( t.id ) {
+				case token_id::whitespace:
+					consume();
+					continue;
+				case token_id::newlines:
+					consume();
+					continue;
+				case token_id::block_comment_begin:
+					consume();
+					if ( !consumed.available || consumed.t.get().id != token_id::comment_text ) {
+						// TODO: proper parsing error
+						// Expected comment text after block begin
+						throw parser_error();
+					}
+					consume();
+					if ( !consumed.available || consumed.t.get().id != token_id::block_comment_end ) {
+						// TODO: proper parsing error
+						// Expected comment text after block begin
+						throw parser_error();
+					}
+					continue;
+				case token_id::line_comment_begin:
+					consume();
+					if ( !consumed.available || consumed.t.get().id != token_id::comment_text ) {
+						// TODO: proper parsing error
+						// Expected comment text after block begin
+						throw parser_error();
+					}
+					consume();
+					if ( !consumed.available || consumed.t.get().id != token_id::line_comment_end ) {
+						// TODO: proper parsing error
+						// Expected comment text after block begin
+						throw parser_error();
+					}
+					continue;
+				default:
+					break;
+				}
+				break;
+			}
+		}
+
+		bool consume_preprocessor() {
+			if ( !consumed.prevlinewhitespace )
+				return false;
+			const token& t = consumed.t;
+			if ( t.id != token_id::hash ) {
+				return false;
+			}
+			consume();
+			consume_whitespace();
+			return true;
+		}
+
+		bool consume_line() {
+			// TODO: can this... ever really fail?
+			for ( ; consumed.available; consume() ) {
+				switch ( consumed.t.get().id ) {
+				case token_id::newlines:
+					consume();
+					return true;
+				case token_id::stream_end:
+					consume();
+					return true;
+				default:
+					continue;
+				}
+			}
+			return true;
+		}
+
+		bool consume_sequence() {
+			consume_whitespace();
+			return consume_preprocessor() || consume_line();
 		}
 
 		void operator () () {
-
+			for ( ; consumed.available; ) {
+				if ( !consume_sequence() ) {
+					// TODO: proper error
+					// unexpected token, expected Sequence...
+					throw parser_error();
+				}
+			}
 		}
 	};
 

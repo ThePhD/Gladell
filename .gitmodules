@@ -1,3 +1,9 @@
 [submodule "vendor/jsonpp"]
 	path = vendor/jsonpp
 	url = https://github.com/ThePhD/jsonpp.git
+[submodule "vendor/Furrovine++.Unicode"]
+	path = vendor/Furrovine++.Unicode
+	url = git@github.com:ThePhD/Furrovine.Unicode.git
+[submodule "vendor/Furrovine++.Heart"]
+	path = vendor/Furrovine++.Heart
+	url = git@github.com:ThePhD/Furrovine.Heart.git

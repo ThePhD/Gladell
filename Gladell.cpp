@@ -5,6 +5,7 @@
 #include <jsonpp/jsonpp.hpp>
 #include <fstream>
 
+#if 0
 inline json::value to_json( gld::intuz n ) {
 	return static_cast<double>( n );
 }
@@ -54,12 +55,14 @@ void json_print( gld::string_view name, gld::string_view source, gld::buffer_vie
 	std::ofstream output( name.c_str() );
 	output << data << std::endl;
 }
+#endif
 
 void lex_print( gld::string_view name, gld::string_view source ) {
 	auto tokens = gld::hlsl::preprocessor::lex( source );
+	//json_print( name, source, tokens );
 	gld::hlsl::preprocessor::parse( tokens );
-	json_print( name, source, tokens );
 }
+	
 
 int main( int argc, char* argv[] ) {
 	using string = Furrovine::string;

@@ -77,9 +77,6 @@
     <ClInclude Include="hlsl\preprocessor\parse.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="hlsl\preprocessor\parser.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="hlsl\lexer_head.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -89,9 +86,18 @@
     <ClInclude Include="hlsl\parser_error.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="hlsl\preprocessor\construct.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hlsl\parser_head.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hlsl\preprocessor\parser.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="hlsl\hlsl.preprocessor.grammar" />
     <None Include="hlsl\hlsl.grammar" />
+    <None Include="hlsl\preprocessor\hlsl.preprocessor.grammar" />
   </ItemGroup>
 </Project>

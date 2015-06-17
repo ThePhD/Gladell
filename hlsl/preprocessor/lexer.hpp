@@ -19,12 +19,14 @@ namespace gld { namespace hlsl { namespace preprocessor {
 	class lexer {
 	private:
 		typedef string_view view_type;
-		typedef decltype(std::declval<view_type>().cbegin()) iterator;
+		typedef Furrovine::tmp::range_cbegin_type_t<view_type> begin_iterator;
+		typedef Furrovine::tmp::range_cend_type_t<view_type> end_iterator;
+		typedef begin_iterator iterator;
 		typedef lexer_head<iterator> read_head;
-		string_view source;
 		
+		view_type source;
 		iterator begin;
-		iterator end;
+		end_iterator end;
 		
 		read_head consumed;
 		read_head peeked;
@@ -39,9 +41,9 @@ namespace gld { namespace hlsl { namespace preprocessor {
 
 	public:
 		lexer(string_view source) 
-		: source(source), begin(source.cbegin()), end(source.cend()), 
-			consumed( source.cbegin() ),
-			peeked( source.cbegin() ),
+		: source(source), begin(adl_cbegin(source)), end(adl_cend(source)), 
+			consumed( adl_cbegin( source ) ),
+			peeked( adl_cbegin( source ) ),
 			inmacro( false ),
 			escaped( false ),
 			escapecount( 0 ) {
