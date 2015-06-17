@@ -861,6 +861,9 @@ namespace gld { namespace hlsl { namespace preprocessor {
 					consume_whitespace();
 				}
 
+				if ( !consumed.available )
+					break;
+
 				auto beginat = consumed.at;
 				auto beginwhere = consumed.where;
 				switch ( consumed.c ) {

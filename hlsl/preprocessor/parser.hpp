@@ -74,7 +74,8 @@ namespace gld { namespace hlsl { namespace preprocessor {
 		}
 
 		bool consume_whitespace() {
-			for ( ; consumed.available; ) {
+			bool found = false;
+			for ( ; consumed.available; found = true ) {
 				const token& t = consumed.t;
 				switch ( t.id ) {
 				case token_id::whitespace:
@@ -116,6 +117,7 @@ namespace gld { namespace hlsl { namespace preprocessor {
 				}
 				break;
 			}
+			return found;
 		}
 
 		bool consume_preprocessor() {
