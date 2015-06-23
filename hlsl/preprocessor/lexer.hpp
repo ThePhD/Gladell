@@ -79,6 +79,7 @@ namespace gld { namespace hlsl { namespace preprocessor {
 			} );
 
 			keywords.insert( {
+				{ "...", token_id::dot_dot_dot },
 				{ "define", token_id::preprocessor_define },
 				{ "undef", token_id::preprocessor_undef },
 				{ "if", token_id::preprocessor_if },
@@ -377,20 +378,34 @@ namespace gld { namespace hlsl { namespace preprocessor {
 		void consume_macro( token_id preprocessorid ) {
 			switch ( preprocessorid ) {
 			case token_id::preprocessor_pragma:
+				activate_macro();
 				consume_pragma();
 				break;
-			case token_id::preprocessor_include:
+			case token_id::preprocessor_include: {
 				// TODO: should the lexer stream be
 				// modified to also preprocess included
 				// file streams?
 				// TODO: change out for better consumer for #include directives
+				token& t = tokens.back();
 				activate_macro();
 				// If it's not a quotes-based string...
 				if ( !consume_string( '"', '"' ) ) {
 					// Then it's a bracket based one. Maybe.
-					consume_string( '<', '>' );
+					if ( consume_string( '<', '>' ) ) {
+						t.value = inclusion_style::quote;
+					}
+					else {
+						// TODO: proper lexer error
+						// invalid format for #include
+						// TODO: shut off error throwing if
+						// in an invalid block, maybe?
+						throw lexer_error();
+					}
 				}
-				break;
+				else {
+					t.value = inclusion_style::quote;
+				}
+				break; }
 			case token_id::preprocessor_ifdef:
 			case token_id::preprocessor_ifndef:
 			case token_id::preprocessor_if:
@@ -401,11 +416,15 @@ namespace gld { namespace hlsl { namespace preprocessor {
 				tokens.emplace_back( token_id::preprocessor_block_end, consumed.where, view_type() );
 				activate_macro();
 				break;
+			case token_id::preprocessor_elif:
+			case token_id::preprocessor_else:
+				tokens.emplace_back( token_id::preprocessor_block_end, consumed.where, view_type() );
+				tokens.emplace_back( token_id::preprocessor_block_begin, consumed.where, view_type() );
+				activate_macro();
+				break;
 			case token_id::preprocessor_error:
 			case token_id::preprocessor_warning:
 			case token_id::preprocessor_define:
-			case token_id::preprocessor_elif:
-			case token_id::preprocessor_else:
 			case token_id::preprocessor_undef:
 				activate_macro();
 			default:
@@ -413,17 +432,17 @@ namespace gld { namespace hlsl { namespace preprocessor {
 			}
 		}
 
-		void consume_preprocessor() {
+		bool consume_preprocessor() {
+			if ( !consumed.previous_line_whitespace || consumed.c != '#' )
+				return false;
 			auto beginat = consumed.at;
 			auto beginwhere = consumed.where;
-			if ( consumed.c != '#' )
-				return;
 			consume();
-			tokens.emplace_back( token_id::hash, beginwhere, source.subview( beginat, consumed.at ) );
+			tokens.emplace_back( token_id::preprocessor_hash, beginwhere, source.subview( beginat, consumed.at ) );
 			if ( !consumed.available ) {
 				// TODO: throw lex error or
 				// let parser catch Unexpected Stream End?
-				return;
+				return false;
 			}
 			consume_whitespace_notnewline();
 			sync_peeked( consumed );
@@ -432,7 +451,7 @@ namespace gld { namespace hlsl { namespace preprocessor {
 			if ( keyword.empty() ) {
 				// TODO: throw lex error or
 				// let parser catch Unexpected Stream End?
-				return;
+				return false;
 			}
 			sync_consumed( peeked );
 			auto keywordsfind = keywords.find( keyword );
@@ -443,6 +462,7 @@ namespace gld { namespace hlsl { namespace preprocessor {
 			}
 			tokens.emplace_back( keywordsfind->second, beginwhere, keyword );
 			consume_macro( keywordsfind->second );
+			return true;
 		}
 
 		void consume_numeric() {
@@ -998,6 +1018,15 @@ namespace gld { namespace hlsl { namespace preprocessor {
 					break;
 				case '.':
 					consume();
+					if ( consumed.c == '.' ) {
+						sync_peeked( consumed, 1 );
+						if ( peeked.c == '.' ) {
+							peek();
+							sync_consumed( peeked );
+							tokens.emplace_back( token_id::dot_dot_dot, beginwhere, source.subview( beginat, consumed.at ) );
+							break;
+						}
+					}
 					tokens.emplace_back( token_id::dot, beginwhere, source.subview( beginat, consumed.at ) );
 					break;
 				case '%':
@@ -1040,8 +1069,7 @@ namespace gld { namespace hlsl { namespace preprocessor {
 					consume_identifier();
 					break;
 				case '#':
-					if ( consumed.previous_line_whitespace ) {
-						consume_preprocessor();
+					if ( consume_preprocessor() ) {
 						break;
 					}
 					consume();

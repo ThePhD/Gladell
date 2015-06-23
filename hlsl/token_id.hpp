@@ -43,8 +43,10 @@ namespace gld { namespace hlsl {
 		hash,
 		whitespace,
 		newlines,
+		dot_dot_dot,
 
 		// Preprocessor
+		preprocessor_hash,
 		preprocessor_block_begin,
 		preprocessor_block_end,
 		preprocessor_statement_begin,

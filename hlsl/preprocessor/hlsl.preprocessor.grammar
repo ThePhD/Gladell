@@ -38,15 +38,18 @@ Sequence -> ε
 Preprocessor -> define [Whitespace] FunctionDeclaration
 Preprocessor -> define [Whitespace] Variable Expression 
 Preprocessor -> if [Whitespace] ControlExpression
-Preprocessor -> ifdef [Whitespace] Variable [Whitespace ControlExpression]
-Preprocessor -> ifndef [Whitespace] Variable [Whitespace ControlExpression]
+Preprocessor -> ifdef [Whitespace] Identifier [Whitespace ControlExpression]
+Preprocessor -> ifndef [Whitespace] Identifier [Whitespace ControlExpression]
 Preprocessor -> elif [Whitespace] ControlExpression
 Preprocessor -> else [Whitespace]
 Preprocessor -> endif [Whitespace]
 Preprocessor -> undef [Whitespace] Variable
-Preprocessor -> include [Whitespace] (" Characters ")|(< Characters >)
+Preprocessor -> include [Whitespace] Inclusion
 Preprocessor -> line [Whitespace] IntegerLiteral [Whitespace] StringLiteral
 Preprocessor -> pragma Pragma
+
+Inclusion -> " Characters "
+Inclusion -> < Characters >
 
 Pragma -> [Whitespace] pack_matrix [Whitespace] ( [Whitespace] column_major|row_major [Whitespace] )
 Pragma -> [Whitespace] warning [Whitespace] ( WarningSpecifier [Whitespace] : [Whitespace] WarningNumberList [Whitespace] [; WarningSpecifier [Whitespace] : [Whitespace] WarningNumberList [Whitespace] ]+ )
