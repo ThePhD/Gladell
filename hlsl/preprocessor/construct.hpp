@@ -52,14 +52,19 @@ namespace gld { namespace hlsl { namespace preprocessor {
 	};
 
 	struct function : definition {
-		std::vector<std::reference_wrapper<token>> parameters;
-		std::vector<std::reference_wrapper<token>> expression_substitutions;
+		std::vector<std::reference_wrapper<const token>> parameters;
+		std::vector<std::reference_wrapper<const token>> substitutions;
+		bool variadic_argument;
 
-		function( buffer_view<const token> seq, const token& target, expression& expr ) : definition( seq, target, std::ref( expr ) ) {
+		function( buffer_view<const token> seq, const token& target, expression& expr, 
+			std::vector<std::reference_wrapper<const token>> params,
+			std::vector<std::reference_wrapper<const token>> subs ) 
+		: definition( seq, target, std::ref( expr ) ), parameters( std::move( params ) ), substitutions(std::move(subs)), 
+		variadic_argument( !parameters.empty() && parameters.back().get().id == token_id::dot_dot_dot ) {
 
 		}
 
-		std::reference_wrapper<expression> substitution() const {
+		std::reference_wrapper<expression> substitution_expression() const {
 			return value.get<std::reference_wrapper<expression>>();
 		}
 	};

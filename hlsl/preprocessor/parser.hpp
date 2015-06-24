@@ -192,16 +192,22 @@ namespace gld { namespace hlsl { namespace preprocessor {
 			return found;
 		}
 
-		bool consume_preprocessor_define_variable() {
-			const token& begintoken = consumed.t;
-			auto beginlexeme = begintoken.lexeme;
+		bool consume_preprocessor_define_variable( const token& id ) {
+			consume_whitespace();
 			auto beginat = consumed.at;
-			consume();
-			auto symbolfind = toplevel.symbols.find( beginlexeme );
+			auto symbolfind = toplevel.symbols.find( id.lexeme );
 			if ( symbolfind == toplevel.symbols.end() ) {
-				symbolfind = toplevel.symbols.emplace_hint( symbolfind, begintoken.lexeme, definition( token_view( beginat, consumed.at ), begintoken, unit{} ) );
+				if ( !consume_macro_line() ) {
+					// TODO: proper error
+					// expected newline-terinated macro expression
+					throw parser_error();
+				}
+				expression& macroexpression = *toplevel.expressions.back();
+				symbolfind = toplevel.symbols.emplace_hint( symbolfind, id.lexeme, definition( token_view( beginat, consumed.at ), id, std::ref( macroexpression ) ) );
+				return true;
 			}
 			else {
+				// TODO: proper error
 				// Error/warning: redeclaring an already-defined symbol
 				// TODO: warning ONLY if the actual defined symbol is different
 				throw parser_error();
@@ -209,12 +215,35 @@ namespace gld { namespace hlsl { namespace preprocessor {
 			return false;
 		}
 
-		bool consume_preprocessor_define_function() {
+		template <typename Range>
+		std::vector<std::reference_wrapper<const token>> get_substitutions( const buffer_view<const token>& seq, Range& range ) {
+			std::vector<std::reference_wrapper<const token>> subs;
+			subs.reserve( 16 );
+			auto itend = adl_cend( range );
+			for ( auto it = adl_cbegin( range ); it != itend; ++it) {
+				const token& t = *it;
+				auto tokenfind = std::find_if( seq.cbegin(), seq.cend(), 
+					[ &t ]( const token& l ) -> bool {
+						return l.lexeme == t.lexeme;
+					} 
+				);
+				if ( tokenfind == seq.cend() ) {
+					continue;
+				}
+				subs.emplace_back( *tokenfind );
+			}
+			return subs;
+		}
+
+		bool consume_preprocessor_define_function( const token& id ) {
 			consume_whitespace();
 			expected_error( consumed.t, token_id::open_parenthesis );
+			auto begintoken = consumed.at;
 			consume();
 			
 			bool foundargument = false;
+			std::vector<std::reference_wrapper<const token>> arguments;
+			arguments.reserve( 16 );
 			optional<const token&> variablearguments = none;
 			for ( ; consumed.available; ) {
 				consume_whitespace();
@@ -229,8 +258,9 @@ namespace gld { namespace hlsl { namespace preprocessor {
 						throw parser_error();
 					}
 					variablearguments = t;
+					arguments.emplace_back( t );
 					foundargument = true;
-					break;
+					continue;
 				case token_id::identifier:
 					if ( variablearguments ) {
 						// TODO: proper error
@@ -238,8 +268,9 @@ namespace gld { namespace hlsl { namespace preprocessor {
 						// And must end on that statement
 						throw parser_error();
 					}
+					arguments.emplace_back( t );
 					foundargument = true;
-					break;
+					continue;
 				default:
 					// TODO: proper error
 					// Unexpected token, expected ')' or '...' or Identifier
@@ -247,18 +278,52 @@ namespace gld { namespace hlsl { namespace preprocessor {
 				}
 				break;
 			}
+			if ( !consume_macro_line() ) {
+				// TODO: proper error
+				// could not read the expression for this macro function expression
+				throw parser_error();
+			}
+			expression& macroexpression = *toplevel.expressions.back();
+			if ( !foundargument ) {
+				// TODO: is it an error if there are parenthesis, but no arguments?
+				// I can imagine sometimes you might want to have () be part of the macro's interface
+				// to just ensure some text is being 'called' with no parameters, so that's actually
+				// a technically-good constraint that can come from macros
+				// throw parser_error();
+			}
+			else {
+				// Create substitutions and find items
+			}
 
 
-
+			auto functionfind = toplevel.functions.find( id.lexeme );
+			if ( functionfind != toplevel.functions.end() ) {
+				// TODO: warning/error only if the defintion is different from the first
+				// throw parser_error();
+			}
+			else {
+				// TODO: do we want to preserve the memory here?
+				// We probably won't have more than 20, and even if we
+				// over-allocated 20 for macro params, I don't think we're
+				// going to take such a bit memory hit that we need to shrink it...
+				// arguments.shrink_to_fit();
+				// substitutions.shrink_to_fit();
+				std::vector<std::reference_wrapper<const token>> substitutions = get_substitutions( macroexpression.tokens, arguments );
+				toplevel.functions.emplace_hint( functionfind, id.lexeme, function( token_view( begintoken, consumed.at ), id, macroexpression, std::move( arguments ), std::move( substitutions ) ) );
+			}
 			return true;
 		}
 
 		bool consume_preprocessor_define() {
 			expected_error( consumed, token_id::identifier );
-			auto peeked = consumed;
+			const token& id = consumed.t;
 			consume_whitespace();
-			advance( peeked );
-			
+			switch ( consumed.t.get().id ) {
+			case token_id::open_parenthesis:
+				return consume_preprocessor_define_function( id );
+			default:
+				return consume_preprocessor_define_variable( id );
+			}
 			
 			return true;
 		}
@@ -437,6 +502,24 @@ namespace gld { namespace hlsl { namespace preprocessor {
 			default:
 				return false;
 			}
+			return true;
+		}
+
+		bool consume_macro_line() {
+			auto beginat = consumed.at;
+			for ( ; consumed.available; consume() ) {
+				switch ( consumed.t.get().id ) {
+				case token_id::newlines:
+					consume();
+					break;
+				case token_id::stream_end:
+					return false;
+				default:
+					continue;
+				}
+				break;
+			}
+			toplevel.expressions.emplace_back( std::make_unique<expression>( token_view( beginat, consumed.at ) ) );
 			return true;
 		}
 

@@ -80,6 +80,7 @@ namespace gld { namespace hlsl { namespace preprocessor {
 
 			keywords.insert( {
 				{ "...", token_id::dot_dot_dot },
+				{ "VA_ARGS", token_id::preprocessor_variadic_arguments },
 				{ "define", token_id::preprocessor_define },
 				{ "undef", token_id::preprocessor_undef },
 				{ "if", token_id::preprocessor_if },
@@ -564,15 +565,9 @@ namespace gld { namespace hlsl { namespace preprocessor {
 			case lexical_numeric_format::decimal:
 				for ( ; consumed.available && !consumed.white_space; consume() ) {
 					switch ( consumed.c ) {
-					case '0':
-					case '1':
-					case '2':
-					case '3':
-					case '4':
-					case '5':
-					case '6':
-					case '7':
-					case '8':
+					case '0': case '1': case '2':
+					case '3': case '4': case '5':
+					case '6': case '7': case '8':
 					case '9':
 						continue;
 					case '.':
@@ -589,19 +584,12 @@ namespace gld { namespace hlsl { namespace preprocessor {
 					consume();
 					for ( ; consumed.available && !consumed.white_space; consume() ) {
 						switch ( consumed.c ) {
-						case '0':
-						case '1':
-						case '2':
-						case '3':
-						case '4':
-						case '5':
-						case '6':
-						case '7':
-						case '8':
+						case '0': case '1': case '2':
+						case '3': case '4': case '5':
+						case '6': case '7': case '8':
 						case '9':
 							continue;
-						case 'e':
-						case 'E':
+						case 'e': case 'E':
 							break;
 						default:
 							invalid = true;
@@ -619,15 +607,9 @@ namespace gld { namespace hlsl { namespace preprocessor {
 					}
 					for ( ; consumed.available && !consumed.white_space; consume() ) {
 						switch ( consumed.c ) {
-						case '0':
-						case '1':
-						case '2':
-						case '3':
-						case '4':
-						case '5':
-						case '6':
-						case '7':
-						case '8':
+						case '0': case '1': case '2':
+						case '3': case '4': case '5':
+						case '6': case '7': case '8':
 						case '9':
 							continue;
 						default:
@@ -900,16 +882,10 @@ namespace gld { namespace hlsl { namespace preprocessor {
 						tokens.emplace_back( token_id::escape, beginwhere, source.subview( beginat, consumed.at ) );
 					}
 					continue;
-				case '1':
-				case '2':
-				case '3':
-				case '4':
-				case '5':
-				case '6':
-				case '7':
-				case '8':
+				case '0': case '1': case '2':
+				case '3': case '4': case '5':
+				case '6': case '7': case '8':
 				case '9':
-				case '0':
 					consume_numeric();
 					break;
 				case '>':

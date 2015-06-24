@@ -52,6 +52,7 @@ namespace gld { namespace hlsl {
 		preprocessor_statement_begin,
 		preprocessor_statement_end,
 		preprocessor_escaped_newline,
+		preprocessor_variadic_arguments,
 		preprocessor_define,
 		preprocessor_undef,
 		preprocessor_if,
