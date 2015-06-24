@@ -60,7 +60,7 @@ namespace gld { namespace hlsl { namespace preprocessor {
 		}
 
 		bool update( read_head& r ) {
-			r.available = r.at == end;
+			r.available = r.at != end;
 			if ( !r.available ) {
 				return false;
 			}
@@ -470,13 +470,12 @@ namespace gld { namespace hlsl { namespace preprocessor {
 		}
 
 		bool consume_preprocessor() {
-			const token& t = consumed.t;
-			if ( t.id != token_id::preprocessor_hash ) {
+			if ( consumed.t.get().id != token_id::preprocessor_hash ) {
 				return false;
 			}
 			consume();
 			consume_whitespace();
-			switch ( t.id ) {
+			switch ( consumed.t.get().id ) {
 			case token_id::preprocessor_undef:
 				return consume_preprocessor_undef();
 			case token_id::preprocessor_define:
@@ -548,16 +547,25 @@ namespace gld { namespace hlsl { namespace preprocessor {
 		}
 
 		void operator () () {
+			update( consumed );
 			for ( ; consumed.available; ) {
-				if ( !consume_sequence() ) {
-					const token& t = consumed.t;
-					if ( t.id == token_id::stream_end ) {
-						consume();
-						break;
+				const token& t = consumed.t;
+				switch ( t.id ) {
+				case token_id::stream_begin:
+				case token_id::stream_end:
+					consume();
+					break;
+				default:
+					if ( !consume_sequence() ) {
+						const token& t = consumed.t;
+						if ( t.id == token_id::stream_end ) {
+							consume();
+							break;
+						}
+						// TODO: proper error
+						// unexpected token, expected Sequence...
+						throw parser_error();
 					}
-					// TODO: proper error
-					// unexpected token, expected Sequence...
-					throw parser_error();
 				}
 			}
 		}

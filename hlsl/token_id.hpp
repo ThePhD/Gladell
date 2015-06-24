@@ -110,7 +110,7 @@ namespace gld { namespace hlsl {
 		reserved_this,
 		reserved_virtual,
 
-		// Operators, combinations of character tokens can yield these instead
+		// Operators -- combinations of character tokens can yield these instead
 		// Increment decrement operators
 		increment,
 		decrement,
@@ -454,8 +454,12 @@ namespace gld { namespace hlsl {
 			return "whitespace";
 		case token_id::newlines:
 			return "newlines";
+		case token_id::dot_dot_dot:
+			return "dot_dot_dot";
 
 			// Preprocessor
+		case token_id::preprocessor_hash:
+			return "preprocessor_hash";
 		case token_id::preprocessor_block_begin:
 			return "preprocessor_block_begin";
 		case token_id::preprocessor_block_end:
@@ -466,6 +470,8 @@ namespace gld { namespace hlsl {
 			return "preprocessor_statement_end";
 		case token_id::preprocessor_escaped_newline:
 			return "preprocessor_escaped_newline";
+		case token_id::preprocessor_variadic_arguments:
+			return "preprocessor_variadic_arguments";
 		case token_id::preprocessor_define:
 			return "preprocessor_define";
 		case token_id::preprocessor_undef:
@@ -577,8 +583,7 @@ namespace gld { namespace hlsl {
 		case token_id::reserved_virtual:
 			return "reserved_virtual";
 
-			// Operators, combinations of character tokens can yield these instead
-			// Increment decrement operators
+		// Increment decrement operators
 		case token_id::increment:
 			return "increment";
 		case token_id::decrement:

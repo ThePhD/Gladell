@@ -376,6 +376,25 @@ namespace gld { namespace hlsl { namespace preprocessor {
 			tokens.emplace_back( tokenid, beginwhere, keyword );
 		}
 
+		void consume_include() {
+			token& t = tokens[tokens.size() - 2];
+			consume_whitespace();
+			// If it's not a quotes-based string...
+			if ( consume_string( '"', '"' ) ) {
+				t.value = inclusion_style::quote;
+				return;
+			}
+			// Then it's a bracket based one. Maybe.
+			if ( !consume_string( '<', '>' ) ) {
+				// TODO: proper lexer error
+				// invalid format for #include
+				// TODO: shut off error throwing if
+				// in an invalid block, maybe?
+				throw lexer_error();
+			}
+			t.value = inclusion_style::angle_bracket;
+		}
+
 		void consume_macro( token_id preprocessorid ) {
 			switch ( preprocessorid ) {
 			case token_id::preprocessor_pragma:
@@ -387,25 +406,8 @@ namespace gld { namespace hlsl { namespace preprocessor {
 				// modified to also preprocess included
 				// file streams?
 				// TODO: change out for better consumer for #include directives
-				token& t = tokens.back();
 				activate_macro();
-				// If it's not a quotes-based string...
-				if ( !consume_string( '"', '"' ) ) {
-					// Then it's a bracket based one. Maybe.
-					if ( consume_string( '<', '>' ) ) {
-						t.value = inclusion_style::quote;
-					}
-					else {
-						// TODO: proper lexer error
-						// invalid format for #include
-						// TODO: shut off error throwing if
-						// in an invalid block, maybe?
-						throw lexer_error();
-					}
-				}
-				else {
-					t.value = inclusion_style::quote;
-				}
+				consume_include();
 				break; }
 			case token_id::preprocessor_ifdef:
 			case token_id::preprocessor_ifndef:
