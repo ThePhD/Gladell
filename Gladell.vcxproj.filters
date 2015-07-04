@@ -98,6 +98,15 @@
     <ClInclude Include="stack.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="hlsl\preprocessor\parse_tree.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hlsl\preprocessor\expression.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hlsl\preprocessor\statement.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="hlsl\hlsl.grammar" />

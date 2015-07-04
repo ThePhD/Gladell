@@ -239,12 +239,13 @@ namespace gld { namespace hlsl { namespace preprocessor {
 
 		bool consume_whitespace_notnewline() {
 			auto beginat = consumed.at;
+			auto beginwhere = consumed.where;
 			while ( consumed.available && consumed.white_space 
 				&& !consumed.line_terminator ) {
 				consume();
 			}
 			if ( beginat != consumed.at ) {
-				tokens.emplace_back( token_id::whitespace, consumed.where, source.subview( beginat, consumed.at ) );
+				tokens.emplace_back( token_id::whitespace, beginwhere, source.subview( beginat, consumed.at ) );
 				return true;
 			}
 			return false;

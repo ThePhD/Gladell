@@ -44,7 +44,7 @@ namespace gld { namespace hlsl { namespace preprocessor {
 		}
 
 		void expected_error( const token& t, token_id id ) {
-			if ( id == t.id ) {
+			if ( id != t.id ) {
 				// TODO: proper error
 				// Expected 'blah', received 'blah'
 				throw parser_error();
@@ -57,6 +57,27 @@ namespace gld { namespace hlsl { namespace preprocessor {
 				// Expected 'blah', received 'blah'
 				throw parser_error();
 			}
+		}
+
+		// TODO: move to detail namespace
+		template <typename Range>
+		std::vector<std::reference_wrapper<const token>> get_substitutions( const buffer_view<const token>& seq, Range& range ) {
+			std::vector<std::reference_wrapper<const token>> subs;
+			subs.reserve( 16 );
+			auto itend = adl_cend( range );
+			for ( auto it = adl_cbegin( range ); it != itend; ++it ) {
+				const token& t = *it;
+				auto tokenfind = std::find_if( seq.cbegin(), seq.cend(),
+					[&t]( const token& l ) -> bool {
+					return l.lexeme == t.lexeme;
+				}
+				);
+				if ( tokenfind == seq.cend() ) {
+					continue;
+				}
+				subs.emplace_back( *tokenfind );
+			}
+			return subs;
 		}
 
 		bool update( read_head& r ) {
@@ -94,11 +115,7 @@ namespace gld { namespace hlsl { namespace preprocessor {
 			return true;
 		}
 
-		bool consume() { 
-			return advance( consumed ); 
-		}
-
-		bool read_whitespace( read_head& r ) {
+		bool whitespace( read_head& r ) {
 			bool found = false;
 			for ( ; r.available; found = true ) {
 				const token& t = r.t;
@@ -145,64 +162,16 @@ namespace gld { namespace hlsl { namespace preprocessor {
 			return found;
 		}
 
-		bool consume_whitespace() {
-			bool found = false;
-			for ( ; consumed.available; found = true ) {
-				const token& t = consumed.t;
-				switch ( t.id ) {
-				case token_id::whitespace:
-					consume();
-					continue;
-				case token_id::newlines:
-					consume();
-					continue;
-				case token_id::block_comment_begin:
-					consume();
-					if ( !consumed.available || t.id != token_id::comment_text ) {
-						// TODO: proper parsing error
-						// Expected comment text after block begin
-						throw parser_error();
-					}
-					consume();
-					if ( !consumed.available || t.id != token_id::block_comment_end ) {
-						// TODO: proper parsing error
-						// Expected comment end after block begin/text
-						throw parser_error();
-					}
-					continue;
-				case token_id::line_comment_begin:
-					consume();
-					if ( !consumed.available || t.id != token_id::comment_text ) {
-						// TODO: proper parsing error
-						// Expected comment text after block begin
-						throw parser_error();
-					}
-					consume();
-					if ( !consumed.available || t.id != token_id::line_comment_end ) {
-						// TODO: proper parsing error
-						// Expected comment end after block begin/text
-						throw parser_error();
-					}
-					continue;
-				default:
-					break;
-				}
-				break;
-			}
-			return found;
-		}
-
-		bool consume_preprocessor_define_variable( const token& id ) {
-			consume_whitespace();
-			auto beginat = consumed.at;
+		bool preprocessor_define_variable( read_head& r, const iterator& beginat, const token& id ) {
 			auto symbolfind = toplevel.symbols.find( id.lexeme );
 			if ( symbolfind == toplevel.symbols.end() ) {
-				if ( !consume_macro_line() ) {
+				auto maybemacroexpression = macro_expression( r );
+				if ( !maybemacroexpression ) {
 					// TODO: proper error
-					// expected newline-terinated macro expression
+					// expected newline-terminated macro expression
 					throw parser_error();
 				}
-				expression& macroexpression = *toplevel.expressions.back();
+				expression& macroexpression = *maybemacroexpression;
 				symbolfind = toplevel.symbols.emplace_hint( symbolfind, id.lexeme, definition( token_view( beginat, consumed.at ), id, std::ref( macroexpression ) ) );
 				return true;
 			}
@@ -215,30 +184,9 @@ namespace gld { namespace hlsl { namespace preprocessor {
 			return false;
 		}
 
-		template <typename Range>
-		std::vector<std::reference_wrapper<const token>> get_substitutions( const buffer_view<const token>& seq, Range& range ) {
-			std::vector<std::reference_wrapper<const token>> subs;
-			subs.reserve( 16 );
-			auto itend = adl_cend( range );
-			for ( auto it = adl_cbegin( range ); it != itend; ++it) {
-				const token& t = *it;
-				auto tokenfind = std::find_if( seq.cbegin(), seq.cend(), 
-					[ &t ]( const token& l ) -> bool {
-						return l.lexeme == t.lexeme;
-					} 
-				);
-				if ( tokenfind == seq.cend() ) {
-					continue;
-				}
-				subs.emplace_back( *tokenfind );
-			}
-			return subs;
-		}
-
-		bool consume_preprocessor_define_function( const token& id ) {
+		bool preprocessor_define_function( read_head& r, const iterator& beginat, const token& id ) {
 			consume_whitespace();
 			expected_error( consumed.t, token_id::open_parenthesis );
-			auto begintoken = consumed.at;
 			consume();
 			
 			bool foundargument = false;
@@ -278,12 +226,13 @@ namespace gld { namespace hlsl { namespace preprocessor {
 				}
 				break;
 			}
-			if ( !consume_macro_line() ) {
+			auto maybemacroexpression = macro_expression();
+			if ( !maybemacroexpression ) {
 				// TODO: proper error
 				// could not read the expression for this macro function expression
 				throw parser_error();
 			}
-			expression& macroexpression = *toplevel.expressions.back();
+			expression& macroexpression = *maybemacroexpression;
 			if ( !foundargument ) {
 				// TODO: is it an error if there are parenthesis, but no arguments?
 				// I can imagine sometimes you might want to have () be part of the macro's interface
@@ -309,26 +258,31 @@ namespace gld { namespace hlsl { namespace preprocessor {
 				// arguments.shrink_to_fit();
 				// substitutions.shrink_to_fit();
 				std::vector<std::reference_wrapper<const token>> substitutions = get_substitutions( macroexpression.tokens, arguments );
-				toplevel.functions.emplace_hint( functionfind, id.lexeme, function( token_view( begintoken, consumed.at ), id, macroexpression, std::move( arguments ), std::move( substitutions ) ) );
+				toplevel.functions.emplace_hint( functionfind, id.lexeme, function( token_view( beginat, consumed.at ), id, macroexpression, std::move( arguments ), std::move( substitutions ) ) );
 			}
 			return true;
 		}
 
-		bool consume_preprocessor_define() {
+		bool preprocessor_define( read_head& r ) {
+			expected_error( consumed, token_id::preprocessor_statement_begin );
+			auto beginat = consumed.at;
+			consume();
+			consume_whitespace();
 			expected_error( consumed, token_id::identifier );
 			const token& id = consumed.t;
+			consume();
 			consume_whitespace();
 			switch ( consumed.t.get().id ) {
 			case token_id::open_parenthesis:
-				return consume_preprocessor_define_function( id );
+				return preprocessor_define_function( beginat, id );
 			default:
-				return consume_preprocessor_define_variable( id );
+				return consume_preprocessor_define_variable( beginat, id );
 			}
 			
 			return true;
 		}
 
-		bool consume_preprocessor_undef() {
+		bool preprocessor_undef( read_head& r ) {
 			const token& t = consumed.t;
 			expected_error( t, token_id::identifier );
 			std::size_t count = toplevel.symbols.erase( t.lexeme );
@@ -344,7 +298,7 @@ namespace gld { namespace hlsl { namespace preprocessor {
 			return true;
 		}
 
-		bool consume_preprocessor_conditional_begin_scope( scope& enclosing ) {
+		bool preprocessor_conditional_begin_scope( read_head& r, scope& enclosing ) {
 			auto conditionread = consumed;
 			for ( ; conditionread.available; advance( conditionread ) ) {
 				const token& t = conditionread.t;
@@ -371,7 +325,7 @@ namespace gld { namespace hlsl { namespace preprocessor {
 			return true;
 		}
 
-		bool consume_preprocessor_conditional_end_scope( scope& enclosing ) {
+		bool preprocessor_conditional_end_scope( read_head& r, scope& enclosing ) {
 			auto conditionread = consumed;
 			for ( ; conditionread.available; advance( conditionread ) ) {
 				const token& t = conditionread.t;
@@ -388,33 +342,33 @@ namespace gld { namespace hlsl { namespace preprocessor {
 			return true;
 		}
 
-		bool consume_preprocessor_if() {
-			return consume_preprocessor_conditional_begin_scope( targetscope );
+		bool preprocessor_if( read_head& r ) {
+			return preprocessor_conditional_begin_scope( r, targetscope );
 		}
 
-		bool consume_preprocessor_ifdef() {
-			return consume_preprocessor_conditional_begin_scope( targetscope );
+		bool preprocessor_ifdef( read_head& r ) {
+			return preprocessor_conditional_begin_scope( r, targetscope );
 		}
 
-		bool consume_preprocessor_ifndef() {
-			return consume_preprocessor_conditional_begin_scope( targetscope );
+		bool preprocessor_ifndef( read_head& r ) {
+			return preprocessor_conditional_begin_scope( r, targetscope );
 		}
 
-		bool consume_preprocessor_elif() {
-			return consume_preprocessor_conditional_end_scope( targetscope )
-				&& consume_preprocessor_conditional_begin_scope( targetscope );
+		bool preprocessor_elif( read_head& r ) {
+			return preprocessor_conditional_end_scope( r, targetscope )
+				&& preprocessor_conditional_begin_scope( r, targetscope );
 		}
 
-		bool consume_preprocessor_else() {
-			return consume_preprocessor_conditional_end_scope( targetscope )
-				&& consume_preprocessor_conditional_begin_scope( targetscope );
+		bool preprocessor_else( read_head& r ) {
+			return preprocessor_conditional_end_scope( r, targetscope )
+				&& preprocessor_conditional_begin_scope( r, targetscope );
 		}
 
-		bool consume_preprocessor_endif() {
-			return consume_preprocessor_conditional_end_scope( targetscope );
+		bool preprocessor_endif( read_head& r ) {
+			return preprocessor_conditional_end_scope( r, targetscope );
 		}
 
-		bool consume_preprocessor_line() {
+		bool preprocessor_line( read_head& r ) {
 			auto conditionread = consumed;
 			for ( ; conditionread.available; advance( conditionread ) ) {
 				const token& t = conditionread.t;
@@ -426,7 +380,7 @@ namespace gld { namespace hlsl { namespace preprocessor {
 			return true;
 		}
 
-		bool consume_preprocessor_include() {
+		bool preprocessor_include( read_head& r ) {
 			auto conditionread = consumed;
 			optional<const token&> include;
 			for ( ; conditionread.available; advance( conditionread ) ) {
@@ -456,7 +410,7 @@ namespace gld { namespace hlsl { namespace preprocessor {
 			return true;
 		}
 
-		bool consume_preprocessor_pragma() {
+		bool consume_preprocessor_pragma( read_head& r ) {
 			auto conditionread = consumed;
 			for ( ; conditionread.available; advance( conditionread ) ) {
 				const token& t = conditionread.t;
@@ -469,34 +423,57 @@ namespace gld { namespace hlsl { namespace preprocessor {
 			return true;
 		}
 
-		bool consume_preprocessor() {
+		bool consume_preprocessor( read_head& r ) {
 			if ( consumed.t.get().id != token_id::preprocessor_hash ) {
 				return false;
 			}
 			consume();
 			consume_whitespace();
-			switch ( consumed.t.get().id ) {
+			const token& t = consumed.t;
+			switch ( t.id ) {
 			case token_id::preprocessor_undef:
-				return consume_preprocessor_undef();
+				consume();
+				consume_whitespace();
+				return preprocessor_undef();
 			case token_id::preprocessor_define:
-				return consume_preprocessor_define();
+				consume();
+				consume_whitespace();
+				return preprocessor_define();
 			case token_id::preprocessor_if:
-				return consume_preprocessor_if();
+				consume();
+				consume_whitespace();
+				return preprocessor_if();
 			case token_id::preprocessor_ifdef:
-				return consume_preprocessor_ifdef();
+				consume();
+				consume_whitespace();
+				return preprocessor_ifdef();
 			case token_id::preprocessor_ifndef:
-				return consume_preprocessor_ifndef();
+				consume();
+				consume_whitespace();
+				return preprocessor_ifndef();
 			case token_id::preprocessor_elif:
-				return consume_preprocessor_elif();
+				consume();
+				consume_whitespace();
+				return preprocessor_elif();
 			case token_id::preprocessor_else:
-				return consume_preprocessor_else();
+				consume();
+				consume_whitespace();
+				return preprocessor_else();
 			case token_id::preprocessor_endif:
-				return consume_preprocessor_endif();
+				consume();
+				consume_whitespace();
+				return preprocessor_endif();
 			case token_id::preprocessor_include:
-				return consume_preprocessor_include();
+				consume();
+				consume_whitespace();
+				return preprocessor_include();
 			case token_id::preprocessor_line:
-				return consume_preprocessor_line();
+				consume();
+				consume_whitespace();
+				return preprocessor_line();
 			case token_id::preprocessor_pragma:
+				consume();
+				consume_whitespace();
 				return consume_preprocessor_pragma();
 			default:
 				return false;
@@ -504,22 +481,20 @@ namespace gld { namespace hlsl { namespace preprocessor {
 			return true;
 		}
 
-		bool consume_macro_line() {
+		optional<expression&> macro_expression( read_head& r ) {
 			auto beginat = consumed.at;
 			for ( ; consumed.available; consume() ) {
 				switch ( consumed.t.get().id ) {
-				case token_id::newlines:
+				case token_id::preprocessor_statement_end:
 					consume();
-					break;
-				case token_id::stream_end:
-					return false;
+					toplevel.expressions.emplace_back( std::make_unique<expression>( token_view( beginat, consumed.at ) ) );
+					return *toplevel.expressions.back();
 				default:
 					continue;
 				}
 				break;
 			}
-			toplevel.expressions.emplace_back( std::make_unique<expression>( token_view( beginat, consumed.at ) ) );
-			return true;
+			return none;
 		}
 
 		bool consume_line() {
@@ -539,6 +514,27 @@ namespace gld { namespace hlsl { namespace preprocessor {
 				}
 			}
 			return true;
+		}
+
+		bool sequence( read_head& r ) {
+			if ( !r.linewhitespace && r.prevlinewhitespace ) {
+				whitespace( r );
+				const token& thash = consumed.t;
+				if ( thash.id == token_id::preprocessor_hash ) {
+					advance( r );
+					whitespace( r );
+					return consume_preprocessor();
+				}
+			}
+
+		}
+
+		bool consume() {
+			return advance( consumed );
+		}
+
+		bool consume_whitespace() {
+			return whitespace( consumed );
 		}
 
 		bool consume_sequence() {

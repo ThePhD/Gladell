@@ -3,11 +3,15 @@ Core Rules
 ===========================
 
 LineTerminator -> unicode.line_terminator
+EscapedLineTerminator -> \ LineTerminator
 Comment -> / / Anything LineTerminator
 Comment -> / * Anything * /
-Whitespace -> unicode.is_whitespace|Comment
+Blankspace -> unicode.is_whitespace|Commment
+CommonWhitespace -> Blankspace|LineTerminator
+Whitespace -> Comment|Blankspace|EscapedLineTerminator
 
-Operator -> ##, #@, |, ^, &, &&, ||, <<, >>, ..., <=, >=, ==, !=, *, /, +, -, %
+UnaryOperator -> ##, #@, !
+BinaryOperator -> !, |, ^, &, &&, ||, <<, >>, ..., <=, >=, ==, !=, *, /, +, -, %
 
 Identifier -> unicode.is_xid_start [unicode.is_xid_continue+]
 Escaped-Character -> \ b|a|f|n|r|t|v|"|'|\|x#|###|b#|
@@ -19,7 +23,7 @@ StringLiteral -> " Characters "
 IntegerLiteral -> [-|+] Digit+
 FloatLiteral -> [-|+] Digits [. Digits]|[. Digits e|E [+|-] Digits]
 
-BinaryExpression -> [(] Identifier [Whitespace] Operator [Whitespace] Identifier [)]
+BinaryExpression -> [(] Identifier [Blankspace] Operator [Whitespace] Identifier [)]
 Expression -> [(] BinaryExpression|Identifier|StringLiteral|FloatLiteral|IntegerLiteral [)] [\ LineTerminator [Whitespace] Expression]
 
 Arguments -> [Whitespace] Identifier [Whitespace] [, [Whitespace] Identifier]
@@ -43,15 +47,23 @@ Preprocessor -> ifndef [Whitespace] Identifier [Whitespace ControlExpression]
 Preprocessor -> elif [Whitespace] ControlExpression
 Preprocessor -> else [Whitespace]
 Preprocessor -> endif [Whitespace]
-Preprocessor -> undef [Whitespace] Variable
+Preprocessor -> undef [Whitespace] Identifier
 Preprocessor -> include [Whitespace] Inclusion
 Preprocessor -> line [Whitespace] IntegerLiteral [Whitespace] StringLiteral
 Preprocessor -> pragma Pragma
 
+Pragma -> [Whitespace] pack_matrix [Whitespace] ( [Whitespace] column_major|row_major [Whitespace] )
+Pragma -> [Whitespace] warning [Whitespace] ( WarningSpecifier [Whitespace] : [Whitespace] WarningNumberList [Whitespace] [; WarningSpecifier [Whitespace] : [Whitespace] WarningNumberList [Whitespace] ] )
+Pragma -> [Whitespace] message [Whitespace] [StringLiteral]
+Pragma -> [Whitespace] def [Whitespace] ( [Whitespace] DefTarget [Whitespace] , [Whitespace] DefRegister [Whitespace] , [Whitespace] ByteValue [Whitespace] , [Whitespace] ByteValue [Whitespace] , [Whitespace] ByteValue [Whitespace] , [Whitespace] ByteValue [Whitespace] )
+
 Inclusion -> " Characters "
 Inclusion -> < Characters >
 
-Pragma -> [Whitespace] pack_matrix [Whitespace] ( [Whitespace] column_major|row_major [Whitespace] )
-Pragma -> [Whitespace] warning [Whitespace] ( WarningSpecifier [Whitespace] : [Whitespace] WarningNumberList [Whitespace] [; WarningSpecifier [Whitespace] : [Whitespace] WarningNumberList [Whitespace] ]+ )
-Pragma -> [Whitespace] message [Whitespace] [StringLiteral]
-Pragma -> [Whitespace] def [Whitespace] ( [Whitespace]DefTarget [Whitespace] , [Whitespace] DefRegister [Whitespace] , [Whitespace] Value [Whitespace] , [Whitespace] Value [Whitespace] , [Whitespace] Value [Whitespace] , [Whitespace] Value [Whitespace] )
+DefTarget -> vs|gs|hs|ds|ps|cs _ 2|3|4|5 _ 0|1|2|3
+DefRegister -> c IntegerLiteral
+DefByteValue -> 0-255
+
+WarningSpecifier -> once|default|disable|error|1|2|3|4
+WarningNumberList -> WarningNumber+
+WarningNumber -> IntegerLiteral Whitespace

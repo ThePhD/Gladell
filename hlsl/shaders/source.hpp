@@ -8,6 +8,8 @@ namespace gld { namespace hlsl { namespace shaders {
 		string_view pre_processing = R"(
 #define a b
 #define c( d ) e
+#define v( ... ) VA_ARGS
+#define w( a, b, c, ... ) a VA_ARGS b c
 #define f(g) h
 #define i(j)k
 #include "file.jk"
