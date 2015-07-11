@@ -14,7 +14,7 @@ namespace gld {
 	using uint32 = Furrovine::uint32;
 	using uint64 = Furrovine::uint64;
 	using intz = Furrovine::intz;
-	using intuz = Furrovine::intuz;
+	using uintz = Furrovine::uintz;
 	using half = Furrovine::half;
 
 }

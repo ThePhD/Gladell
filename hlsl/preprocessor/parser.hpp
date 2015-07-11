@@ -1,5 +1,7 @@
 #pragma once
 
+#include "parse_tree.hpp"
+#include "symbol_table.hpp"
 #include "construct.hpp"
 #include "../token.hpp"
 #include "../parser_head.hpp"
@@ -19,20 +21,42 @@ namespace gld { namespace hlsl { namespace preprocessor {
 		typedef parser_head<iterator> read_head;
 
 		view_type source;
-		iterator begin;
+		begin_iterator begin;
 		end_iterator end;
 
 		read_head consumed;
-
-		top_level toplevel;
-		std::reference_wrapper<scope> targetscope;
+		
+		block target;
+		parse_tree& tree;
+		symbol_table& symbols;
 		
 	public:
-		parser( view_type tokens ) : source( std::move( tokens ) ),
+		parser( view_type tokens, parse_tree& tree, symbol_table& symbols ) : source( std::move( tokens ) ),
 		begin( adl_cbegin( source ) ), end( adl_cend( source ) ),
 		consumed( begin ),
-		toplevel( source ), targetscope( toplevel.scopes.back() ) {
+		tree( tree ), symbols( symbols ) {
 			
+		}
+
+	private:
+		template <typename Range>
+		std::vector<std::reference_wrapper<const token>> get_substitutions( const buffer_view<const token>& seq, Range& range ) {
+			std::vector<std::reference_wrapper<const token>> subs;
+			subs.reserve( 16 );
+			auto itend = adl_cend( range );
+			for ( auto it = adl_cbegin( range ); it != itend; ++it ) {
+				const token& t = *it;
+				auto tokenfind = std::find_if( seq.cbegin(), seq.cend(),
+					[&t]( const token& l ) -> bool {
+					return l.lexeme == t.lexeme;
+				}
+				);
+				if ( tokenfind == seq.cend() ) {
+					continue;
+				}
+				subs.emplace_back( *tokenfind );
+			}
+			return subs;
 		}
 
 		void expected_error ( const read_head& r, token_id id ) {
@@ -57,27 +81,6 @@ namespace gld { namespace hlsl { namespace preprocessor {
 				// Expected 'blah', received 'blah'
 				throw parser_error();
 			}
-		}
-
-		// TODO: move to detail namespace
-		template <typename Range>
-		std::vector<std::reference_wrapper<const token>> get_substitutions( const buffer_view<const token>& seq, Range& range ) {
-			std::vector<std::reference_wrapper<const token>> subs;
-			subs.reserve( 16 );
-			auto itend = adl_cend( range );
-			for ( auto it = adl_cbegin( range ); it != itend; ++it ) {
-				const token& t = *it;
-				auto tokenfind = std::find_if( seq.cbegin(), seq.cend(),
-					[&t]( const token& l ) -> bool {
-					return l.lexeme == t.lexeme;
-				}
-				);
-				if ( tokenfind == seq.cend() ) {
-					continue;
-				}
-				subs.emplace_back( *tokenfind );
-			}
-			return subs;
 		}
 
 		bool update( read_head& r ) {
@@ -163,16 +166,16 @@ namespace gld { namespace hlsl { namespace preprocessor {
 		}
 
 		bool preprocessor_define_variable( read_head& r, const iterator& beginat, const token& id ) {
-			auto symbolfind = toplevel.symbols.find( id.lexeme );
-			if ( symbolfind == toplevel.symbols.end() ) {
-				auto maybemacroexpression = macro_expression( r );
+			auto symbolfind = symbols.defines.find( id.lexeme );
+			if ( symbolfind == symbols.defines.end() ) {
+				auto maybemacroexpression = macro_statement( r );
 				if ( !maybemacroexpression ) {
 					// TODO: proper error
 					// expected newline-terminated macro expression
 					throw parser_error();
 				}
 				expression& macroexpression = *maybemacroexpression;
-				symbolfind = toplevel.symbols.emplace_hint( symbolfind, id.lexeme, definition( token_view( beginat, consumed.at ), id, std::ref( macroexpression ) ) );
+				symbolfind = symbols.defines.emplace_hint( symbolfind, id.lexeme, definition( token_view( beginat, consumed.at ), id, std::ref( macroexpression ) ) );
 				return true;
 			}
 			else {
@@ -226,7 +229,7 @@ namespace gld { namespace hlsl { namespace preprocessor {
 				}
 				break;
 			}
-			auto maybemacroexpression = macro_expression();
+			auto maybemacroexpression = macro_statement();
 			if ( !maybemacroexpression ) {
 				// TODO: proper error
 				// could not read the expression for this macro function expression
@@ -481,7 +484,7 @@ namespace gld { namespace hlsl { namespace preprocessor {
 			return true;
 		}
 
-		optional<expression&> macro_expression( read_head& r ) {
+		optional<expression&> macro_statement( read_head& r ) {
 			auto beginat = consumed.at;
 			for ( ; consumed.available; consume() ) {
 				switch ( consumed.t.get().id ) {
@@ -541,6 +544,8 @@ namespace gld { namespace hlsl { namespace preprocessor {
 			consume_whitespace();
 			return consume_preprocessor() || consume_line();
 		}
+
+	public:
 
 		void operator () () {
 			update( consumed );

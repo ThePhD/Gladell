@@ -5,7 +5,7 @@
 #include <jsonpp/jsonpp.hpp>
 #include <fstream>
 
-inline json::value to_json( gld::intuz n ) {
+inline json::value to_json( gld::uintz n ) {
 	return static_cast<double>( n );
 }
 

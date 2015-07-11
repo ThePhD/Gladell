@@ -134,6 +134,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="character_type.hpp" />
+    <ClInclude Include="constant_type.hpp" />
     <ClInclude Include="hlsl\lexer_head.hpp" />
     <ClInclude Include="hlsl\lexer.hpp" />
     <ClInclude Include="hlsl\lexer_error.hpp" />
@@ -148,6 +149,7 @@
     <ClInclude Include="hlsl\parser_head.hpp" />
     <ClInclude Include="hlsl\preprocessor\parse_tree.hpp" />
     <ClInclude Include="hlsl\preprocessor\statement.hpp" />
+    <ClInclude Include="hlsl\preprocessor\symbol_table.hpp" />
     <ClInclude Include="hlsl\shaders\source.hpp" />
     <ClInclude Include="hlsl\token.hpp" />
     <ClInclude Include="hlsl\token_id.hpp" />
