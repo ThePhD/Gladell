@@ -144,9 +144,11 @@
     <ClInclude Include="hlsl\preprocessor\expression.hpp" />
     <ClInclude Include="hlsl\preprocessor\lex.hpp" />
     <ClInclude Include="hlsl\preprocessor\lexer.hpp" />
+    <ClInclude Include="hlsl\preprocessor\lexer_error.hpp" />
     <ClInclude Include="hlsl\preprocessor\parse.hpp" />
     <ClInclude Include="hlsl\preprocessor\parser.hpp" />
     <ClInclude Include="hlsl\parser_head.hpp" />
+    <ClInclude Include="hlsl\preprocessor\parser_error.hpp" />
     <ClInclude Include="hlsl\preprocessor\parse_tree.hpp" />
     <ClInclude Include="hlsl\preprocessor\statement.hpp" />
     <ClInclude Include="hlsl\preprocessor\symbol_table.hpp" />
@@ -161,6 +163,7 @@
     <ClInclude Include="range.hpp" />
     <ClInclude Include="stack.hpp" />
     <ClInclude Include="string.hpp" />
+    <ClInclude Include="tagged.hpp" />
     <ClInclude Include="unicode.hpp" />
     <ClInclude Include="unit.hpp" />
     <ClInclude Include="variant.hpp" />

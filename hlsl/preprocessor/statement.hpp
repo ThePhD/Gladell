@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../../variant.hpp"
 #include "expression.hpp"
 
 namespace gld { namespace hlsl { namespace preprocessor {
@@ -18,33 +17,47 @@ namespace gld { namespace hlsl { namespace preprocessor {
 	struct inclusion : sequence {
 		string_literal name;
 
-		inclusion( buffer_view<const token> seq ) : sequence( seq ) {
+		inclusion( buffer_view<const token> seq, string_literal name ) : sequence( seq ), name( name ) {
 
 		}
+	};
+
+	struct substitution_argument : symbol {
+
+	};
+
+	struct substitution_text : sequence {
+		std::vector<symbol> symbols;
 	};
 
 	struct definition;
 	struct function;
 
+	struct block;
+
+	struct if_elseif_else;
+	struct pragma_construct;
+	struct error_construct;
+
 	typedef variant<
 		//statement,
 		// symbols
 		symbol,
-		std::reference_wrapper<definition>,
-		std::reference_wrapper<function>,
-		// flow control
-		std::reference_wrapper<if_elseif_else>,
-		std::reference_wrapper<switch_case>,
+		index_ref<definition>,
+		index_ref<function>,
 		// aggregates
-		std::reference_wrapper<block>
+		index_ref<block>,
+		// flow control
+		index_ref<if_elseif_else>,
+		// keyword constructs
+		inclusion,
+		index_ref<pragma_construct>,
+		index_ref<error_construct>,
+		parser_error
 	> statement;
 
-	struct block : sequence {
-		std::vector<statement> statements;
-	};
-
 	struct substitution : sequence {
-		std::vector<symbol> substitutions;
+		std::vector<variant<substitution_argument, substitution_text>> text;
 
 		substitution( buffer_view<const token> seq ) : sequence( seq ) {
 
@@ -59,6 +72,10 @@ namespace gld { namespace hlsl { namespace preprocessor {
 		definition( buffer_view<const token> seq, symbol name, Tn&&... argn ) : sequence( seq ), name( name ), substitution( std::forward<Tn>( argn )... ) {
 
 		}
+	};
+
+	struct block : sequence {
+		std::vector<statement> statements;
 	};
 
 	struct function : sequence {
@@ -78,9 +95,12 @@ namespace gld { namespace hlsl { namespace preprocessor {
 
 	struct if_elseif_else : sequence {
 		std::vector<conditional> conditions;
+		std::vector<block> success_blocks;
 	};
 
-	struct switch_case : if_elseif_else {
+	struct error_construct : sequence {
+		string_literal text;
+
 
 	};
 

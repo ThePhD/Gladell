@@ -1,10 +1,15 @@
 #pragma once
 
+#include "../../tagged.hpp"
 #include "../../variant.hpp"
 #include "../../constant_type.hpp"
 #include "construct.hpp"
+#include "parser_error.hpp"
 
 namespace gld { namespace hlsl { namespace preprocessor {
+
+	template <typename T>
+	using index_ref = tagged<uintz, T>;
 
 	template <typename T>
 	inline string_view create_name( T& tokens ) {
@@ -102,27 +107,28 @@ namespace gld { namespace hlsl { namespace preprocessor {
 		defined,
 		/* tree-like expressions */
 		// preprocessor operators/expression
-		std::reference_wrapper<stringizing_expression>,
-		std::reference_wrapper<charizing_expression>,
-		std::reference_wrapper<token_pasting_expression>,
+		index_ref<stringizing_expression>,
+		index_ref<charizing_expression>,
+		index_ref<token_pasting_expression>,
 		// flow control
-		std::reference_wrapper<ternary_expression>,
+		index_ref<ternary_expression>,
 		// comparison operators
-		std::reference_wrapper<not_expression>,
-		std::reference_wrapper<less_expression>,
-		std::reference_wrapper<less_equals_expression>,
-		std::reference_wrapper<greater_expression>,
-		std::reference_wrapper<greater_equals_expression>,
-		std::reference_wrapper<equals_expression>,
+		index_ref<not_expression>,
+		index_ref<less_expression>,
+		index_ref<less_equals_expression>,
+		index_ref<greater_expression>,
+		index_ref<greater_equals_expression>,
+		index_ref<equals_expression>,
 		// math operators
-		std::reference_wrapper<add_subtract_expression>,
-		std::reference_wrapper<multiply_divide_expression>,
-		std::reference_wrapper<modulus_expression>,
+		index_ref<add_subtract_expression>,
+		index_ref<multiply_divide_expression>,
+		index_ref<modulus_expression>,
 		// bit operators
-		std::reference_wrapper<and_expression>,
-		std::reference_wrapper<negate_expression>,
-		std::reference_wrapper<or_expression>,
-		std::reference_wrapper<xor_expression>
+		index_ref<and_expression>,
+		index_ref<negate_expression>,
+		index_ref<or_expression>,
+		index_ref<xor_expression>,
+		parser_error
 	> expression;
 
 	struct unary_expression {

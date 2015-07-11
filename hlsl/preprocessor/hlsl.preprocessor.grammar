@@ -51,6 +51,7 @@ Preprocessor -> undef [Whitespace] Identifier
 Preprocessor -> include [Whitespace] Inclusion
 Preprocessor -> line [Whitespace] IntegerLiteral [Whitespace] StringLiteral
 Preprocessor -> pragma Pragma
+Preprocessor -> error StringLiteral
 
 Pragma -> [Whitespace] pack_matrix [Whitespace] ( [Whitespace] column_major|row_major [Whitespace] )
 Pragma -> [Whitespace] warning [Whitespace] ( WarningSpecifier [Whitespace] : [Whitespace] WarningNumberList [Whitespace] [; WarningSpecifier [Whitespace] : [Whitespace] WarningNumberList [Whitespace] ] )

@@ -1,13 +1,6 @@
 #pragma once
 
 #include "../token.hpp"
-#include "../../optional.hpp"
-#include "../../string.hpp"
-#include "../../range.hpp"
-#include "../../stack.hpp"
-#include <functional>
-#include <vector>
-#include <unordered_map>
 
 namespace gld { namespace hlsl { namespace preprocessor {
 

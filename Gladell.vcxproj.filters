@@ -113,6 +113,15 @@
     <ClInclude Include="hlsl\preprocessor\symbol_table.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="tagged.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hlsl\preprocessor\lexer_error.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hlsl\preprocessor\parser_error.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="hlsl\hlsl.grammar" />
