@@ -58,7 +58,8 @@ void json_print( gld::string_view name, gld::string_view source, gld::buffer_vie
 void lex_print( gld::string_view name, gld::string_view source ) {
 	auto tokens = gld::hlsl::preprocessor::lex( name, source );
 	json_print( name, source, tokens );
-	gld::hlsl::preprocessor::parse( tokens );
+	gld::hlsl::preprocessor::parse_tree tree = gld::hlsl::preprocessor::parse( tokens );
+
 }
 
 int main( int argc, char* argv[] ) {

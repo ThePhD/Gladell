@@ -379,10 +379,11 @@ namespace gld { namespace hlsl { namespace preprocessor {
 		}
 
 		void consume_include() {
-			token& t = tokens[tokens.size() - 2];
+			std::size_t idx = tokens.size() - 1;
 			consume_whitespace();
 			// If it's not a quotes-based string...
 			if ( consume_string( '"', '"' ) ) {
+				token& t = tokens[ idx ];
 				t.value = inclusion_style::quote;
 				return;
 			}
@@ -394,6 +395,7 @@ namespace gld { namespace hlsl { namespace preprocessor {
 				// in an invalid block, maybe?
 				throw lexer_error();
 			}
+			token& t = tokens[ idx ];
 			t.value = inclusion_style::angle_bracket;
 		}
 

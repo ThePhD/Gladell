@@ -1,6 +1,7 @@
 #pragma once
 
 #include "parse_tree.hpp"
+#include "parse_result.hpp"
 #include "symbol_table.hpp"
 #include "construct.hpp"
 #include "../token.hpp"
@@ -10,71 +11,6 @@
 #include "../../range.hpp"
 
 namespace gld { namespace hlsl { namespace preprocessor {
-
-	template <typename T>
-	struct parse_result {
-		variant<parser_error, T> result;
-
-		struct visitor {
-			T& operator() ( T& a ) const {
-				return a;
-			}
-
-			const T& operator() ( const T& a ) const {
-				return a;
-			}
-
-			T& operator() ( parser_error& error ) const {
-				throw error;
-			}
-
-			const T& operator() ( const parser_error& error ) const {
-				throw error;
-			}
-		};
-
-		template <typename T0, typename... Tn, typename = std::enable_if_t<!std::is_same<Furrovine::tmp::unqualified_t<T0>, parse_result>::value && !std::is_same<Furrovine::tmp::unqualified_t<T0>, parser_error>::value>>
-		parse_result( T0&& arg0, Tn&&... argn ) : result( in_place_of<T>(), std::forward<T0>( arg0 ), std::forward<Tn>( argn )... ) {
-
-		}
-
-		parse_result( const parser_error& e ) : result( in_place_of<parser_error>(), e ) {
-
-		}
-
-		parse_result( parser_error&& e ) : result( in_place_of<parser_error>(), std::move( e ) ) {
-
-		}
-
-		parse_result( const parse_result& ) = default;
-		parse_result& operator=( const parse_result& ) = default;
-		parse_result( parse_result&& ) = default;
-		parse_result& operator=( parse_result&& ) = default;
-
-		bool valid() const {
-			return result.is<T>();
-		}
-
-		explicit operator bool() const {
-			return valid();
-		}
-
-		T& get ( ) {
-			return result.visit( visitor( ) );
-		}
-
-		const T& get ( ) const {
-			return result.visit( visitor( ) );
-		}
-
-		operator T& () {
-			return get();
-		}
-
-		operator const T& () const {
-			return get();
-		}
-	};
 
 	class parser {
 	private:
@@ -306,16 +242,16 @@ namespace gld { namespace hlsl { namespace preprocessor {
 			return f;
 		}
 
-		statement parse_define( read_head& r ) {
-			expected_error( consumed, token_id::preprocessor_statement_begin );
-			auto beginat = consumed.at;
+		parse_result<statement> parse_define( read_head& r ) {
+			expected_error( r, token_id::preprocessor_statement_begin );
+			auto beginat = r.at;
 			advance( r );
 			parse_whitespace( r );
-			expected_error( consumed, token_id::identifier );
-			const token& id = consumed.t;
+			expected_error( r, token_id::identifier );
+			const token& id = r.t;
 			advance( r );
 			parse_whitespace( r );
-			switch ( consumed.id ) {
+			switch ( r.id ) {
 			case token_id::open_parenthesis: {
 				function f = parse_define_function( r, beginat, id );
 				return f;
@@ -561,10 +497,7 @@ namespace gld { namespace hlsl { namespace preprocessor {
 		}
 
 		parse_result<statement> parse_preprocessor( read_head& r ) {
-			//advance( r );
-			parse_whitespace( r );
-			const token& t = r.t;
-			switch ( t.id ) {
+			switch ( r.id ) {
 			case token_id::preprocessor_undef:
 				advance( r );
 				parse_whitespace( r );
@@ -577,6 +510,10 @@ namespace gld { namespace hlsl { namespace preprocessor {
 				parse_whitespace( r );
 				{
 					auto result = parse_define( r );
+					if ( !result ) {
+						return result.exception();
+					}
+					return result.get();
 				}
 				break;
 			case token_id::preprocessor_if:
@@ -622,9 +559,10 @@ namespace gld { namespace hlsl { namespace preprocessor {
 				}
 				break;
 			case token_id::preprocessor_include:
-				advance( r );
-				parse_whitespace( r );
 				{
+					const token& t = r.t;
+					advance( r );
+					parse_whitespace( r );
 					auto result = parse_include( r, t );
 				}
 				break;
@@ -650,12 +588,15 @@ namespace gld { namespace hlsl { namespace preprocessor {
 		}
 
 		parse_result<statement> parse_statement( read_head& r ) {
+			parse_whitespace( r );
 			switch ( r.id ) {
 			case token_id::preprocessor_hash:
 				if ( r.prevlinewhitespace ) {
 					// Then it's valid and we parse other statements
 					// TODO: bake this information into meaning of preprocessor_hash,
 					// and distinguish it from the regular `hash` token_id
+					advance( r );
+					parse_whitespace( r );
 					parse_preprocessor( r );
 					// Placeholder
 					return parser_error();

@@ -153,6 +153,7 @@
     <ClInclude Include="hlsl\preprocessor\parser.hpp" />
     <ClInclude Include="hlsl\parser_head.hpp" />
     <ClInclude Include="hlsl\preprocessor\parser_error.hpp" />
+    <ClInclude Include="hlsl\preprocessor\parse_result.hpp" />
     <ClInclude Include="hlsl\preprocessor\parse_tree.hpp" />
     <ClInclude Include="hlsl\preprocessor\statement.hpp" />
     <ClInclude Include="hlsl\preprocessor\symbol_table.hpp" />

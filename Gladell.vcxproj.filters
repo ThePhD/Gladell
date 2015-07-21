@@ -122,6 +122,9 @@
     <ClInclude Include="hlsl\preprocessor\parser_error.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="hlsl\preprocessor\parse_result.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="hlsl\hlsl.grammar" />
