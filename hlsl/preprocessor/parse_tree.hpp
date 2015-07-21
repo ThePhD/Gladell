@@ -8,8 +8,13 @@
 
 namespace gld { namespace hlsl { namespace preprocessor {
 
-	struct parse_tree {
-#define GLD_STORAGE( x ) std::vector<x> x##_storage
+	struct parse_tree : public block {
+#define GLD_STORAGE( x ) \
+		private: std::vector<x> x##_storage; \
+		public: x& operator[]( index_ref<x> i ) { return x##_storage[i.get()]; } \
+		public: const x& operator[]( index_ref<x> i ) const { return x##_storage[i.get()]; } \
+		public: template <typename... Tn> x& make_##x ( Tn&&... argn ) { return x##_storage.emplace_back( std::forward<Tn>( argn )... ); }
+		
 		// Expression storage
 		GLD_STORAGE( conditional );
 		GLD_STORAGE( ternary_expression );
@@ -46,9 +51,7 @@ namespace gld { namespace hlsl { namespace preprocessor {
 #undef GLD_STORAGE
 
 	public:
-		// Defer initialization to later...
-		optional<statement> root;
-
+		
 		parse_tree( ) {
 
 		}

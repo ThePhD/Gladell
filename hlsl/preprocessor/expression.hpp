@@ -15,7 +15,7 @@ namespace gld { namespace hlsl { namespace preprocessor {
 	inline string_view create_name( T& tokens ) {
 		if ( tokens.empty() )
 			return {};
-		auto first = tokens.first().lexeme.begin();
+		auto first = tokens.front().lexeme.begin();
 		auto last = tokens.back().lexeme.end();
 		return string_view( first, last );
 	}
@@ -26,6 +26,10 @@ namespace gld { namespace hlsl { namespace preprocessor {
 
 		symbol( buffer_view<const token> seq ) : sequence( seq ), name( create_name( tokens ) ) {
 			
+		}
+
+		bool operator== ( const symbol& right ) const {
+			return name == right.name;
 		}
 
 	};
@@ -53,8 +57,10 @@ namespace gld { namespace hlsl { namespace preprocessor {
 
 	struct string_literal : sequence {
 
-		string_literal( buffer_view<const token> seq ) : sequence( seq ) {
+		string_view value;
 
+		string_literal( buffer_view<const token> seq, string_view value ) : sequence( seq ), value(value) {
+			
 		}
 	};
 

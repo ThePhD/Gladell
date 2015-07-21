@@ -56,16 +56,17 @@ void json_print( gld::string_view name, gld::string_view source, gld::buffer_vie
 }
 
 void lex_print( gld::string_view name, gld::string_view source ) {
-	auto tokens = gld::hlsl::preprocessor::lex( source );
+	auto tokens = gld::hlsl::preprocessor::lex( name, source );
 	json_print( name, source, tokens );
 	gld::hlsl::preprocessor::parse( tokens );
 }
-	
+
 int main( int argc, char* argv[] ) {
+	using namespace Furrovine::tmp;
 	using string = Furrovine::string;
 	using string_view = Furrovine::string_view;
 	std::vector<string_view> arguments(argv, argv + argc);
-	
+
 	lex_print( "pp.fluff.pre_processing.json", gld::hlsl::shaders::fluff::pre_processing );
-	//lex_print( "pp.nymphbatch.json", gld::hlsl::shaders::sm40_level_93::nymph_batch );
+	lex_print( "pp.nymphbatch.json", gld::hlsl::shaders::sm40_level_93::nymph_batch );
 }

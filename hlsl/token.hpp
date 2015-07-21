@@ -15,6 +15,7 @@ namespace gld { namespace hlsl {
 		occurrence where;
 		string_view lexeme;
 		variant<unit, 
+			string,
 			inclusion_style,
 			bool,
 			uint8, uint16, uint32, uint64,  

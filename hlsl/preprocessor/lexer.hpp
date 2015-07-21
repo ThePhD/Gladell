@@ -24,6 +24,7 @@ namespace gld { namespace hlsl { namespace preprocessor {
 		typedef begin_iterator iterator;
 		typedef lexer_head<iterator> read_head;
 		
+		string origin;
 		view_type source;
 		iterator begin;
 		end_iterator end;
@@ -40,8 +41,8 @@ namespace gld { namespace hlsl { namespace preprocessor {
 		intz escapecount;
 
 	public:
-		lexer(string_view source) 
-		: source(source), begin(adl_cbegin(source)), end(adl_cend(source)), 
+		lexer(string origin, string_view source) 
+		: origin(origin), source(source), begin(adl_cbegin(source)), end(adl_cend(source)), 
 			consumed( adl_cbegin( source ) ),
 			peeked( adl_cbegin( source ) ),
 			inmacro( false ),
@@ -113,9 +114,9 @@ namespace gld { namespace hlsl { namespace preprocessor {
 		}
 
 		std::vector<token> operator()() {
-			tokens.emplace_back( token_id::stream_begin, consumed.where );
+			tokens.emplace_back( token_id::stream_begin, consumed.where, origin );
 			lex();
-			tokens.emplace_back( token_id::stream_end, consumed.where );
+			tokens.emplace_back( token_id::stream_end, consumed.where, origin );
 			return std::move( tokens );
 		}
 
@@ -407,8 +408,8 @@ namespace gld { namespace hlsl { namespace preprocessor {
 				// modified to also preprocess included
 				// file streams?
 				// TODO: change out for better consumer for #include directives
-				activate_macro();
 				consume_include();
+				activate_macro();
 				break; }
 			case token_id::preprocessor_ifdef:
 			case token_id::preprocessor_ifndef:

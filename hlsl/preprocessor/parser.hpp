@@ -11,6 +11,71 @@
 
 namespace gld { namespace hlsl { namespace preprocessor {
 
+	template <typename T>
+	struct parse_result {
+		variant<parser_error, T> result;
+
+		struct visitor {
+			T& operator() ( T& a ) const {
+				return a;
+			}
+
+			const T& operator() ( const T& a ) const {
+				return a;
+			}
+
+			T& operator() ( parser_error& error ) const {
+				throw error;
+			}
+
+			const T& operator() ( const parser_error& error ) const {
+				throw error;
+			}
+		};
+
+		template <typename T0, typename... Tn, typename = std::enable_if_t<!std::is_same<Furrovine::tmp::unqualified_t<T0>, parse_result>::value && !std::is_same<Furrovine::tmp::unqualified_t<T0>, parser_error>::value>>
+		parse_result( T0&& arg0, Tn&&... argn ) : result( in_place_of<T>(), std::forward<T0>( arg0 ), std::forward<Tn>( argn )... ) {
+
+		}
+
+		parse_result( const parser_error& e ) : result( in_place_of<parser_error>(), e ) {
+
+		}
+
+		parse_result( parser_error&& e ) : result( in_place_of<parser_error>(), std::move( e ) ) {
+
+		}
+
+		parse_result( const parse_result& ) = default;
+		parse_result& operator=( const parse_result& ) = default;
+		parse_result( parse_result&& ) = default;
+		parse_result& operator=( parse_result&& ) = default;
+
+		bool valid() const {
+			return result.is<T>();
+		}
+
+		explicit operator bool() const {
+			return valid();
+		}
+
+		T& get ( ) {
+			return result.visit( visitor( ) );
+		}
+
+		const T& get ( ) const {
+			return result.visit( visitor( ) );
+		}
+
+		operator T& () {
+			return get();
+		}
+
+		operator const T& () const {
+			return get();
+		}
+	};
+
 	class parser {
 	private:
 		typedef buffer_view<const token> token_view;
@@ -39,26 +104,6 @@ namespace gld { namespace hlsl { namespace preprocessor {
 		}
 
 	private:
-		template <typename Range>
-		std::vector<std::reference_wrapper<const token>> get_substitutions( const buffer_view<const token>& seq, Range& range ) {
-			std::vector<std::reference_wrapper<const token>> subs;
-			subs.reserve( 16 );
-			auto itend = adl_cend( range );
-			for ( auto it = adl_cbegin( range ); it != itend; ++it ) {
-				const token& t = *it;
-				auto tokenfind = std::find_if( seq.cbegin(), seq.cend(),
-					[&t]( const token& l ) -> bool {
-					return l.lexeme == t.lexeme;
-				}
-				);
-				if ( tokenfind == seq.cend() ) {
-					continue;
-				}
-				subs.emplace_back( *tokenfind );
-			}
-			return subs;
-		}
-
 		void expected_error ( const read_head& r, token_id id ) {
 			if ( !r.available ) {
 				// unexpected end of stream, expected 'id'
@@ -89,8 +134,9 @@ namespace gld { namespace hlsl { namespace preprocessor {
 				return false;
 			}
 			r.t = *r.at;
+			r.id = r.t.get().id;
 			r.prevlinewhitespace = r.linewhitespace;
-			switch ( r.t.get().id ) {
+			switch ( r.id ) {
 			case token_id::newlines:
 				r.linewhitespace = true;
 				break;
@@ -118,9 +164,9 @@ namespace gld { namespace hlsl { namespace preprocessor {
 			return true;
 		}
 
-		bool whitespace( read_head& r ) {
-			bool found = false;
-			for ( ; r.available; found = true ) {
+		parse_result<sequence> parse_whitespace( read_head& r ) {
+			auto beginat = r.at;
+			for ( ; r.available; ) {
 				const token& t = r.t;
 				switch ( t.id ) {
 				case token_id::whitespace:
@@ -131,30 +177,30 @@ namespace gld { namespace hlsl { namespace preprocessor {
 					continue;
 				case token_id::block_comment_begin:
 					advance( r );
-					if ( !r.available || t.id != token_id::comment_text ) {
+					if ( !r.available || r.id != token_id::comment_text ) {
 						// TODO: proper parsing error
 						// Expected comment text after block begin
-						throw parser_error();
+						return parser_error();
 					}
 					advance( r );
-					if ( !r.available || t.id != token_id::block_comment_end ) {
+					if ( !r.available || r.id != token_id::block_comment_end ) {
 						// TODO: proper parsing error
 						// Expected comment end after block begin/text
-						throw parser_error();
+						return parser_error();
 					}
 					continue;
 				case token_id::line_comment_begin:
 					advance( r );
-					if ( !r.available || t.id != token_id::comment_text ) {
+					if ( !r.available || r.id != token_id::comment_text ) {
 						// TODO: proper parsing error
 						// Expected comment text after block begin
-						throw parser_error();
+						return parser_error();
 					}
 					advance( r );
-					if ( !r.available || t.id != token_id::line_comment_end ) {
+					if ( !r.available || r.id != token_id::line_comment_end ) {
 						// TODO: proper parsing error
 						// Expected comment end after block begin/text
-						throw parser_error();
+						return parser_error( );
 					}
 					continue;
 				default:
@@ -162,43 +208,45 @@ namespace gld { namespace hlsl { namespace preprocessor {
 				}
 				break;
 			}
-			return found;
+			return sequence( beginat, r.at );
 		}
 
-		bool preprocessor_define_variable( read_head& r, const iterator& beginat, const token& id ) {
-			auto symbolfind = symbols.defines.find( id.lexeme );
+		parse_result<expression> parse_expression( read_head& r ) {
+			return parser_error();
+		}
+
+		parse_result<definition> parse_define_variable( read_head& r, const iterator& beginat, const token& idtoken ) {
+			symbol id( token_view( &idtoken, &idtoken + 1 ) );
+			auto symbolfind = symbols.defines.find( id.name );
 			if ( symbolfind == symbols.defines.end() ) {
-				auto maybemacroexpression = macro_statement( r );
-				if ( !maybemacroexpression ) {
+				auto maybesubstitutionline = parse_substitution_line( r );
+				if ( !maybesubstitutionline ) {
 					// TODO: proper error
 					// expected newline-terminated macro expression
-					throw parser_error();
+					return parser_error( );
 				}
-				expression& macroexpression = *maybemacroexpression;
-				symbolfind = symbols.defines.emplace_hint( symbolfind, id.lexeme, definition( token_view( beginat, consumed.at ), id, std::ref( macroexpression ) ) );
-				return true;
+				substitution_line& substitutionline = maybesubstitutionline;
+				return definition( token_view( beginat, r.at ), id, std::move( substitutionline ) );
 			}
-			else {
-				// TODO: proper error
-				// Error/warning: redeclaring an already-defined symbol
-				// TODO: warning ONLY if the actual defined symbol is different
-				throw parser_error();
-			}
-			return false;
+			// TODO: proper error
+			// Error/warning: redeclaring an already-defined symbol
+			// TODO: warning ONLY if the actual defined symbol is different
+			return parser_error();
 		}
 
-		bool preprocessor_define_function( read_head& r, const iterator& beginat, const token& id ) {
-			consume_whitespace();
-			expected_error( consumed.t, token_id::open_parenthesis );
-			consume();
-			
+		parse_result<function> parse_define_function( read_head& r, const iterator& beginat, const token& idtoken ) {
+			symbol id( token_view( &idtoken, &idtoken + 1 ) );
+			parse_whitespace( r );
+			expected_error( r.t, token_id::open_parenthesis );
+			advance( r );
 			bool foundargument = false;
-			std::vector<std::reference_wrapper<const token>> arguments;
-			arguments.reserve( 16 );
-			optional<const token&> variablearguments = none;
+			std::vector<symbol> parameters;
+			parameters.reserve( 16 );
+			optional<const symbol&> variablearguments = none;
 			for ( ; consumed.available; ) {
-				consume_whitespace();
-				const token& t = consumed.t;
+				parse_whitespace( r );
+				const token& t = r.t;
+				token_view tseq( &t, &t + 1 );
 				switch ( t.id ) {
 				case token_id::close_parenthesis:
 					break;
@@ -206,10 +254,10 @@ namespace gld { namespace hlsl { namespace preprocessor {
 					if ( variablearguments ) {
 						// TODO: proper error
 						// Argument expression already has a variable argument statement '...'
-						throw parser_error();
+						return parser_error();
 					}
-					variablearguments = t;
-					arguments.emplace_back( t );
+					parameters.emplace_back( tseq );
+					variablearguments = parameters.back();
 					foundargument = true;
 					continue;
 				case token_id::identifier:
@@ -217,25 +265,25 @@ namespace gld { namespace hlsl { namespace preprocessor {
 						// TODO: proper error
 						// Argument expression already has a variable argument statement '...'
 						// And must end on that statement
-						throw parser_error();
+						return parser_error();
 					}
-					arguments.emplace_back( t );
+					parameters.emplace_back( tseq );
 					foundargument = true;
 					continue;
 				default:
 					// TODO: proper error
 					// Unexpected token, expected ')' or '...' or Identifier
-					throw parser_error();
+					return parser_error();
 				}
 				break;
 			}
-			auto maybemacroexpression = macro_statement();
-			if ( !maybemacroexpression ) {
+			auto mayberoutine = parse_substitution( r, parameters );
+			if ( !mayberoutine ) {
 				// TODO: proper error
 				// could not read the expression for this macro function expression
 				throw parser_error();
 			}
-			expression& macroexpression = *maybemacroexpression;
+			substitution& routine = mayberoutine.get();
 			if ( !foundargument ) {
 				// TODO: is it an error if there are parenthesis, but no arguments?
 				// I can imagine sometimes you might want to have () be part of the macro's interface
@@ -247,48 +295,42 @@ namespace gld { namespace hlsl { namespace preprocessor {
 				// Create substitutions and find items
 			}
 
-
-			auto functionfind = toplevel.functions.find( id.lexeme );
-			if ( functionfind != toplevel.functions.end() ) {
+			token_view seq( beginat, consumed.at );
+			function f( seq, id, std::move( parameters ), std::move( routine ) );
+			auto functionfind = symbols.functions.find( id.name );
+			if ( functionfind != symbols.functions.end() ) {
 				// TODO: warning/error only if the defintion is different from the first
 				// throw parser_error();
 			}
-			else {
-				// TODO: do we want to preserve the memory here?
-				// We probably won't have more than 20, and even if we
-				// over-allocated 20 for macro params, I don't think we're
-				// going to take such a bit memory hit that we need to shrink it...
-				// arguments.shrink_to_fit();
-				// substitutions.shrink_to_fit();
-				std::vector<std::reference_wrapper<const token>> substitutions = get_substitutions( macroexpression.tokens, arguments );
-				toplevel.functions.emplace_hint( functionfind, id.lexeme, function( token_view( beginat, consumed.at ), id, macroexpression, std::move( arguments ), std::move( substitutions ) ) );
-			}
-			return true;
+			symbols.functions.emplace_hint( functionfind, id.name, f );
+			return f;
 		}
 
-		bool preprocessor_define( read_head& r ) {
+		statement parse_define( read_head& r ) {
 			expected_error( consumed, token_id::preprocessor_statement_begin );
 			auto beginat = consumed.at;
-			consume();
-			consume_whitespace();
+			advance( r );
+			parse_whitespace( r );
 			expected_error( consumed, token_id::identifier );
 			const token& id = consumed.t;
-			consume();
-			consume_whitespace();
-			switch ( consumed.t.get().id ) {
-			case token_id::open_parenthesis:
-				return preprocessor_define_function( beginat, id );
-			default:
-				return consume_preprocessor_define_variable( beginat, id );
+			advance( r );
+			parse_whitespace( r );
+			switch ( consumed.id ) {
+			case token_id::open_parenthesis: {
+				function f = parse_define_function( r, beginat, id );
+				return f;
 			}
-			
-			return true;
+			default:
+				break;
+			}
+			definition d = parse_define_variable( r, beginat, id );
+			return d;
 		}
 
-		bool preprocessor_undef( read_head& r ) {
+		parse_result<undefinition> parse_undef( read_head& r ) {
 			const token& t = consumed.t;
 			expected_error( t, token_id::identifier );
-			std::size_t count = toplevel.symbols.erase( t.lexeme );
+			std::size_t count = symbols.defines.erase( t.lexeme );
 			if ( count == 0 ) {
 				// TODO: warning that 'undef'ing a symbol that doesn't exist?
 			}
@@ -296,13 +338,14 @@ namespace gld { namespace hlsl { namespace preprocessor {
 				// Should never hit this condition ever
 				// TODO: proper error
 				// multiply defined symbols being removed
-				throw parser_error();
+				return parser_error();
 			}
-			return true;
+			token_view seq( &t, &t + 1 );
+			return undefinition( seq );
 		}
 
-		bool preprocessor_conditional_begin_scope( read_head& r, scope& enclosing ) {
-			auto conditionread = consumed;
+		bool preprocessor_conditional_begin_scope( read_head& r ) {
+			/*auto conditionread = r;
 			for ( ; conditionread.available; advance( conditionread ) ) {
 				const token& t = conditionread.t;
 				if ( t.id == token_id::preprocessor_statement_end ) {
@@ -324,12 +367,12 @@ namespace gld { namespace hlsl { namespace preprocessor {
 			expression* resultexpression = toplevel.expressions.back().get();
 			conditional& condition = *static_cast<conditional*>( resultexpression );
 			fresh.condition = condition;
-			
+			*/
 			return true;
 		}
 
-		bool preprocessor_conditional_end_scope( read_head& r, scope& enclosing ) {
-			auto conditionread = consumed;
+		bool preprocessor_conditional_end_scope( read_head& r ) {
+			/*auto conditionread = consumed;
 			for ( ; conditionread.available; advance( conditionread ) ) {
 				const token& t = conditionread.t;
 				if ( t.id == token_id::preprocessor_block_end ) {
@@ -341,37 +384,37 @@ namespace gld { namespace hlsl { namespace preprocessor {
 			enclosing.tokens = token_view( enclosing.tokens.cbegin(), conditionread.at );
 
 			toplevel.scopestack.pop();
-
+			*/
 			return true;
 		}
 
 		bool preprocessor_if( read_head& r ) {
-			return preprocessor_conditional_begin_scope( r, targetscope );
+			return preprocessor_conditional_begin_scope( r );
 		}
 
 		bool preprocessor_ifdef( read_head& r ) {
-			return preprocessor_conditional_begin_scope( r, targetscope );
+			return preprocessor_conditional_begin_scope( r );
 		}
 
-		bool preprocessor_ifndef( read_head& r ) {
-			return preprocessor_conditional_begin_scope( r, targetscope );
+		bool parse_ifndef( read_head& r ) {
+			return preprocessor_conditional_begin_scope( r );
 		}
 
-		bool preprocessor_elif( read_head& r ) {
-			return preprocessor_conditional_end_scope( r, targetscope )
-				&& preprocessor_conditional_begin_scope( r, targetscope );
+		bool parse_elif( read_head& r ) {
+			return preprocessor_conditional_end_scope( r )
+				&& preprocessor_conditional_begin_scope( r );
 		}
 
-		bool preprocessor_else( read_head& r ) {
-			return preprocessor_conditional_end_scope( r, targetscope )
-				&& preprocessor_conditional_begin_scope( r, targetscope );
+		bool parse_else( read_head& r ) {
+			return preprocessor_conditional_end_scope( r )
+				&& preprocessor_conditional_begin_scope( r );
 		}
 
-		bool preprocessor_endif( read_head& r ) {
-			return preprocessor_conditional_end_scope( r, targetscope );
+		bool parse_endif( read_head& r ) {
+			return preprocessor_conditional_end_scope( r );
 		}
 
-		bool preprocessor_line( read_head& r ) {
+		bool parse_line_directive( read_head& r ) {
 			auto conditionread = consumed;
 			for ( ; conditionread.available; advance( conditionread ) ) {
 				const token& t = conditionread.t;
@@ -383,9 +426,10 @@ namespace gld { namespace hlsl { namespace preprocessor {
 			return true;
 		}
 
-		bool preprocessor_include( read_head& r ) {
-			auto conditionread = consumed;
+		parse_result<inclusion> parse_include( read_head& r, const token& includetoken ) {
+			auto conditionread = r;
 			optional<const token&> include;
+			token_view literalseq;
 			for ( ; conditionread.available; advance( conditionread ) ) {
 				const token& t = conditionread.t;
 				switch ( t.id ) {
@@ -393,13 +437,17 @@ namespace gld { namespace hlsl { namespace preprocessor {
 					if ( include ) {
 						// TODO: proper error
 						// two string literals on the same include line: syntax error
-						throw parser_error();
+						return parser_error();
 					}
 					advance( conditionread );
 					expected_error( conditionread, token_id::string_literal );
-					include = t;
-					advance( conditionread );
-					expected_error( conditionread, token_id::string_literal_end );
+					{
+						const token& literaltoken = conditionread.t;
+						include = literaltoken;
+						advance( conditionread );
+						expected_error( conditionread, token_id::string_literal_end );
+						literalseq = token_view( &literaltoken - 1, &literaltoken + 1 );
+					}
 					continue;
 				case token_id::preprocessor_statement_end:
 					break;
@@ -407,13 +455,14 @@ namespace gld { namespace hlsl { namespace preprocessor {
 				break;
 			}
 			advance( conditionread );
-			toplevel.expressions.push_back( std::make_unique<inclusion>( token_view( consumed.at, conditionread.at ), include.get() ) );
-			
-			consumed = conditionread;
-			return true;
+			r = conditionread;
+
+			token_view seq( r.at, conditionread.at );
+			inclusion_style style = includetoken.value.get<inclusion_style>();
+			return inclusion( literalseq, string_literal( literalseq, literalseq[ 1 ].lexeme ), style );
 		}
 
-		bool consume_preprocessor_pragma( read_head& r ) {
+		bool parse_pragma( read_head& r ) {
 			auto conditionread = consumed;
 			for ( ; conditionread.available; advance( conditionread ) ) {
 				const token& t = conditionread.t;
@@ -426,148 +475,225 @@ namespace gld { namespace hlsl { namespace preprocessor {
 			return true;
 		}
 
-		bool consume_preprocessor( read_head& r ) {
-			if ( consumed.t.get().id != token_id::preprocessor_hash ) {
-				return false;
-			}
-			consume();
-			consume_whitespace();
-			const token& t = consumed.t;
-			switch ( t.id ) {
-			case token_id::preprocessor_undef:
-				consume();
-				consume_whitespace();
-				return preprocessor_undef();
-			case token_id::preprocessor_define:
-				consume();
-				consume_whitespace();
-				return preprocessor_define();
-			case token_id::preprocessor_if:
-				consume();
-				consume_whitespace();
-				return preprocessor_if();
-			case token_id::preprocessor_ifdef:
-				consume();
-				consume_whitespace();
-				return preprocessor_ifdef();
-			case token_id::preprocessor_ifndef:
-				consume();
-				consume_whitespace();
-				return preprocessor_ifndef();
-			case token_id::preprocessor_elif:
-				consume();
-				consume_whitespace();
-				return preprocessor_elif();
-			case token_id::preprocessor_else:
-				consume();
-				consume_whitespace();
-				return preprocessor_else();
-			case token_id::preprocessor_endif:
-				consume();
-				consume_whitespace();
-				return preprocessor_endif();
-			case token_id::preprocessor_include:
-				consume();
-				consume_whitespace();
-				return preprocessor_include();
-			case token_id::preprocessor_line:
-				consume();
-				consume_whitespace();
-				return preprocessor_line();
-			case token_id::preprocessor_pragma:
-				consume();
-				consume_whitespace();
-				return consume_preprocessor_pragma();
-			default:
-				return false;
-			}
-			return true;
-		}
-
-		optional<expression&> macro_statement( read_head& r ) {
-			auto beginat = consumed.at;
-			for ( ; consumed.available; consume() ) {
-				switch ( consumed.t.get().id ) {
-				case token_id::preprocessor_statement_end:
-					consume();
-					toplevel.expressions.emplace_back( std::make_unique<expression>( token_view( beginat, consumed.at ) ) );
-					return *toplevel.expressions.back();
+		parse_result<substitution> parse_substitution( read_head& r, buffer_view<const symbol> parameters ) {
+			// TODO: can this... ever really fail?
+			auto beginat = r.at;
+			auto lineat = r.at;
+			std::vector<substitution_text> substitutiontext;
+			std::vector<symbol> substitutionsymbols;
+			auto commitline = [&]() {
+				if ( lineat == r.at )
+					return;
+				token_view seq( lineat, r.at );
+				substitutiontext.emplace_back( in_place_of<substitution_line>(), seq, std::move( substitutionsymbols ) );
+				lineat = r.at;
+			};
+			for ( ; r.available; advance( r ) ) {
+				auto symbolfind = [ lexeme = r.t.get().lexeme ]( const symbol& s ) {
+					return s.name == lexeme;
+				};
+				switch ( r.id ) {
+				case token_id::newlines:
+					break;
+				case token_id::identifier:
+					if ( std::find_if( parameters.begin(), parameters.end(), symbolfind ) != parameters.end() ) {
+						commitline();
+						substitutiontext.emplace_back( in_place_of<substitution_argument>(), token_view( r.at, std::next( r.at, 1 ) ) );
+					}
+					else {
+						substitutionsymbols.emplace_back( token_view( r.at, std::next( r.at, 1 ) ) );
+					}
+					continue;
+				case token_id::stream_end:
+					break;
 				default:
 					continue;
 				}
 				break;
 			}
-			return none;
+			token_view seq( beginat, r.at );
+			return substitution( seq, substitutiontext );
 		}
 
-		bool consume_line() {
+		parse_result<substitution_argument> parse_substitution_argument( read_head& r ) {
+			return parser_error();
+		}
+
+		parse_result<substitution_line> parse_substitution_line( read_head& r ) {
 			// TODO: can this... ever really fail?
-			for ( ; consumed.available; consume() ) {
-				switch ( consumed.t.get().id ) {
+			auto beginat = r.at;
+			std::vector<symbol> substitutionsymbols;
+			for ( bool stop = false; !stop && r.available; advance( r ) ) {
+				switch ( r.id ) {
 				case token_id::newlines:
-					consume();
-					return true;
-				case token_id::identifier: {
-					scope& s = targetscope;
-					break; }
+					advance( r );
+					stop = true;
+					continue;
+				case token_id::identifier:
+					substitutionsymbols.emplace_back( token_view( r.at, std::next( r.at, 1 ) ) );
+					continue;
 				case token_id::stream_end:
-					return true;
+					continue;
 				default:
 					continue;
 				}
+				break;
 			}
-			return true;
+			return substitution_line( token_view( beginat, r.at ), substitutionsymbols );
 		}
 
-		bool sequence( read_head& r ) {
-			if ( !r.linewhitespace && r.prevlinewhitespace ) {
-				whitespace( r );
-				const token& thash = consumed.t;
-				if ( thash.id == token_id::preprocessor_hash ) {
+		parse_result<text_line> parse_text_line( read_head& r ) {
+			auto beginat = r.at;
+			for ( bool stop = false; !stop && r.available; advance( r ) ) {
+				switch ( r.id ) {
+				case token_id::newlines:
 					advance( r );
-					whitespace( r );
-					return consume_preprocessor();
+					stop = true;
+					continue;
+				case token_id::stream_end:
+					continue;
+				default:
+					continue;
 				}
+				break;
 			}
-
+			return text_line( token_view( beginat, r.at ) );
 		}
 
-		bool consume() {
-			return advance( consumed );
+		parse_result<statement> parse_preprocessor( read_head& r ) {
+			//advance( r );
+			parse_whitespace( r );
+			const token& t = r.t;
+			switch ( t.id ) {
+			case token_id::preprocessor_undef:
+				advance( r );
+				parse_whitespace( r );
+				{
+					parse_result<undefinition> result = parse_undef( r );
+				}
+				break;
+			case token_id::preprocessor_define:
+				advance( r );
+				parse_whitespace( r );
+				{
+					auto result = parse_define( r );
+				}
+				break;
+			case token_id::preprocessor_if:
+				advance( r );
+				parse_whitespace( r );
+				{
+					auto result = preprocessor_if( r );
+				}
+				break;
+			case token_id::preprocessor_ifdef:
+				advance( r );
+				parse_whitespace( r );
+				{
+					auto result = preprocessor_ifdef( r );
+				}
+				break;
+			case token_id::preprocessor_ifndef:
+				advance( r );
+				parse_whitespace( r );
+				{
+					auto result = parse_ifndef( r );
+				}
+				break;
+			case token_id::preprocessor_elif:
+				advance( r );
+				parse_whitespace( r );
+				{
+					auto result = parse_elif( r );
+				}
+				break;
+			case token_id::preprocessor_else:
+				advance( r );
+				parse_whitespace( r );
+				{
+					auto result = parse_else( r );
+				}
+				break;
+			case token_id::preprocessor_endif:
+				advance( r );
+				parse_whitespace( r );
+				{
+					auto result = parse_endif( r );
+				}
+				break;
+			case token_id::preprocessor_include:
+				advance( r );
+				parse_whitespace( r );
+				{
+					auto result = parse_include( r, t );
+				}
+				break;
+			case token_id::preprocessor_line:
+				advance( r );
+				parse_whitespace( r );
+				{
+					auto result = parse_line_directive( r );
+				}
+				break;
+			case token_id::preprocessor_pragma:
+				advance( r );
+				parse_whitespace( r );
+				{
+					auto result = parse_pragma( r );
+				}
+				break;
+			default:
+				break;
+			}
+			// Placeholder
+			return parser_error();
 		}
 
-		bool consume_whitespace() {
-			return whitespace( consumed );
-		}
-
-		bool consume_sequence() {
-			consume_whitespace();
-			return consume_preprocessor() || consume_line();
+		parse_result<statement> parse_statement( read_head& r ) {
+			switch ( r.id ) {
+			case token_id::preprocessor_hash:
+				if ( r.prevlinewhitespace ) {
+					// Then it's valid and we parse other statements
+					// TODO: bake this information into meaning of preprocessor_hash,
+					// and distinguish it from the regular `hash` token_id
+					parse_preprocessor( r );
+					// Placeholder
+					return parser_error();
+				}
+				break;
+			default:
+				break;
+			}
+			parse_result<text_line> maybetextline = parse_text_line( r );
+			return parse_result<statement>( in_place_of<text_line>(), maybetextline.get() );
 		}
 
 	public:
 
 		void operator () () {
 			update( consumed );
-			for ( ; consumed.available; ) {
+			buffer_view<const token> rootsequence( source.data(), source.data() );
+			bool streambegin = false, streamend = false;
+			for ( ; consumed.available && !streamend; ) {
 				const token& t = consumed.t;
-				switch ( t.id ) {
+				switch ( consumed.id ) {
 				case token_id::stream_begin:
+					rootsequence = token_view( &t, &t );
+					if ( streambegin ) {
+						// Two stream-begin tokens... was there a nested sequence concatenated to this one?
+					}
+					streambegin = true;
+					advance( consumed );
+					break;
 				case token_id::stream_end:
-					consume();
+					advance( consumed );
+					streamend = true;
 					break;
 				default:
-					if ( !consume_sequence() ) {
-						const token& t = consumed.t;
-						if ( t.id == token_id::stream_end ) {
-							consume();
-							break;
-						}
-						// TODO: proper error
-						// unexpected token, expected Sequence...
-						throw parser_error();
-					}
+					parse_statement( consumed );
+					break;
 				}
+				rootsequence = token_view( source.data(), &consumed.t.get() );
 			}
 		}
 	};

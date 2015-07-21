@@ -9,8 +9,8 @@ namespace gld { namespace hlsl { namespace preprocessor {
 		// TODO: measure single-table with variant for items
 		// versus double-table with specifics
 		// immediate benefit of variant: adding more "Tables" is easier, backing allocator changes simpler
-		std::unordered_map<string_view, definition> defines;
-		std::unordered_map<string_view, function> functions;
+		std::unordered_map<string_view, std::reference_wrapper<definition>> defines;
+		std::unordered_map<string_view, std::reference_wrapper<function>> functions;
 
 		optional<variant<definition&, function&>> operator[]( string_view& name ) {
 			auto definesfind = defines.find( name );
