@@ -144,19 +144,20 @@
     <ClInclude Include="hlsl\lexer_error.hpp" />
     <ClInclude Include="hlsl\occurrence.hpp" />
     <ClInclude Include="hlsl\parser_error.hpp" />
-    <ClInclude Include="hlsl\preprocessor\construct.hpp" />
-    <ClInclude Include="hlsl\preprocessor\expression.hpp" />
-    <ClInclude Include="hlsl\preprocessor\lex.hpp" />
-    <ClInclude Include="hlsl\preprocessor\lexer.hpp" />
-    <ClInclude Include="hlsl\preprocessor\lexer_error.hpp" />
-    <ClInclude Include="hlsl\preprocessor\parse.hpp" />
-    <ClInclude Include="hlsl\preprocessor\parser.hpp" />
+    <ClInclude Include="hlsl\pp\conditional_origin.hpp" />
+    <ClInclude Include="hlsl\pp\construct.hpp" />
+    <ClInclude Include="hlsl\pp\expression.hpp" />
+    <ClInclude Include="hlsl\pp\lex.hpp" />
+    <ClInclude Include="hlsl\pp\lexer.hpp" />
+    <ClInclude Include="hlsl\pp\lexer_error.hpp" />
+    <ClInclude Include="hlsl\pp\parse.hpp" />
+    <ClInclude Include="hlsl\pp\parser.hpp" />
     <ClInclude Include="hlsl\parser_head.hpp" />
-    <ClInclude Include="hlsl\preprocessor\parser_error.hpp" />
-    <ClInclude Include="hlsl\preprocessor\parse_result.hpp" />
-    <ClInclude Include="hlsl\preprocessor\parse_tree.hpp" />
-    <ClInclude Include="hlsl\preprocessor\statement.hpp" />
-    <ClInclude Include="hlsl\preprocessor\symbol_table.hpp" />
+    <ClInclude Include="hlsl\pp\parser_error.hpp" />
+    <ClInclude Include="hlsl\pp\parse_result.hpp" />
+    <ClInclude Include="hlsl\pp\parse_tree.hpp" />
+    <ClInclude Include="hlsl\pp\statement.hpp" />
+    <ClInclude Include="hlsl\pp\symbol_table.hpp" />
     <ClInclude Include="hlsl\shaders\source.hpp" />
     <ClInclude Include="hlsl\token.hpp" />
     <ClInclude Include="hlsl\token_id.hpp" />
@@ -175,7 +176,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="hlsl\hlsl.grammar" />
-    <None Include="hlsl\preprocessor\hlsl.preprocessor.grammar" />
+    <None Include="hlsl\pp\hlsl.pp.grammar" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="vendor\Furrovine++.Heart\Furrovine++.Heart.vcxproj">

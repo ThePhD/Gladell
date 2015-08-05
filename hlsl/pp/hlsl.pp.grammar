@@ -1,0 +1,70 @@
+﻿===========================
+Core Rules
+===========================
+
+LineTerminator -> unicode.line_terminator
+EscapedLineTerminator -> \ LineTerminator
+Comment -> / / Anything LineTerminator
+Comment -> / * Anything * /
+Blankspace -> unicode.is_whitespace|Commment
+CommonWhitespace -> Blankspace|LineTerminator
+Whitespace -> Comment|Blankspace|EscapedLineTerminator
+
+UnaryOperator -> ##, #@, !
+BinaryOperator -> !, |, ^, &, &&, ||, <<, >>, ..., <=, >=, ==, !=, *, /, +, -, %
+
+Identifier -> unicode.is_xid_start [unicode.is_xid_continue+]
+Escaped-Character -> \ b|a|f|n|r|t|v|"|'|\|x#|###|b#|
+Character -> Escaped-Character|codepoint
+Characters -> Character+
+Digit -> 0|1|2|3|4|5|6|7|8|9
+Digits -> Digit+
+StringLiteral -> " Characters "
+IntegerLiteral -> [-|+] Digit+
+FloatLiteral -> [-|+] Digits [. Digits]|[. Digits e|E [+|-] Digits]
+
+BinaryExpression -> [(] Identifier [Blankspace] Operator [Whitespace] Identifier [)]
+Expression -> [(] BinaryExpression|Identifier|StringLiteral|FloatLiteral|IntegerLiteral [)] [\ LineTerminator [Whitespace] Expression]
+
+Arguments -> [Whitespace] Identifier [Whitespace] [, [Whitespace] Identifier]
+Function -> [Whitespace] ( [Whitespace] Arguments [Whitespace] ) [Whitespace] Expression
+FuntionDeclaration -> [Whitespace] Identifier [Whitespace] Function
+
+============================
+Language Production Rules
+============================
+
+S -> Sequence
+Sequence -> LineTerminator [Whitespace] # [Whitespace] Preprocessor Sequence
+Sequence -> [Whitespace] Identifier Sequence
+Sequence -> [Whitespace] Sequence
+Sequence -> ε
+Preprocessor -> define [Whitespace] FunctionDeclaration
+Preprocessor -> define [Whitespace] Variable Expression 
+Preprocessor -> if [Whitespace] ControlExpression
+Preprocessor -> ifdef [Whitespace] Identifier [Whitespace ControlExpression]
+Preprocessor -> ifndef [Whitespace] Identifier [Whitespace ControlExpression]
+Preprocessor -> elif [Whitespace] ControlExpression
+Preprocessor -> else [Whitespace]
+Preprocessor -> endif [Whitespace]
+Preprocessor -> undef [Whitespace] Identifier
+Preprocessor -> include [Whitespace] Inclusion
+Preprocessor -> line [Whitespace] IntegerLiteral [Whitespace] StringLiteral
+Preprocessor -> pragma Pragma
+Preprocessor -> error StringLiteral
+
+Pragma -> [Whitespace] pack_matrix [Whitespace] ( [Whitespace] column_major|row_major [Whitespace] )
+Pragma -> [Whitespace] warning [Whitespace] ( WarningSpecifier [Whitespace] : [Whitespace] WarningNumberList [Whitespace] [; WarningSpecifier [Whitespace] : [Whitespace] WarningNumberList [Whitespace] ] )
+Pragma -> [Whitespace] message [Whitespace] [StringLiteral]
+Pragma -> [Whitespace] def [Whitespace] ( [Whitespace] DefTarget [Whitespace] , [Whitespace] DefRegister [Whitespace] , [Whitespace] ByteValue [Whitespace] , [Whitespace] ByteValue [Whitespace] , [Whitespace] ByteValue [Whitespace] , [Whitespace] ByteValue [Whitespace] )
+
+Inclusion -> " Characters "
+Inclusion -> < Characters >
+
+DefTarget -> vs|gs|hs|ds|ps|cs _ 2|3|4|5 _ 0|1|2|3
+DefRegister -> c IntegerLiteral
+DefByteValue -> 0-255
+
+WarningSpecifier -> once|default|disable|error|1|2|3|4
+WarningNumberList -> WarningNumber+
+WarningNumber -> IntegerLiteral Whitespace

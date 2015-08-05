@@ -32,9 +32,6 @@
     <ClInclude Include="character_type.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="hlsl\preprocessor\lexer.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="hlsl\token_id.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -71,12 +68,6 @@
     <ClInclude Include="range.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="hlsl\preprocessor\lex.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="hlsl\preprocessor\parse.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="hlsl\lexer_head.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -86,48 +77,60 @@
     <ClInclude Include="hlsl\parser_error.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="hlsl\preprocessor\construct.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="hlsl\parser_head.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="hlsl\preprocessor\parser.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="stack.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="hlsl\preprocessor\parse_tree.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="hlsl\preprocessor\expression.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="hlsl\preprocessor\statement.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="constant_type.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="hlsl\preprocessor\symbol_table.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="tagged.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="hlsl\preprocessor\lexer_error.hpp">
+    <ClInclude Include="hlsl\pp\construct.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="hlsl\preprocessor\parser_error.hpp">
+    <ClInclude Include="hlsl\pp\expression.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="hlsl\preprocessor\parse_result.hpp">
+    <ClInclude Include="hlsl\pp\lex.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hlsl\pp\lexer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hlsl\pp\lexer_error.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hlsl\pp\parse.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hlsl\pp\parse_result.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hlsl\pp\parse_tree.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hlsl\pp\parser.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hlsl\pp\parser_error.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hlsl\pp\statement.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hlsl\pp\symbol_table.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hlsl\pp\conditional_origin.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="hlsl\hlsl.grammar" />
-    <None Include="hlsl\preprocessor\hlsl.preprocessor.grammar" />
+    <None Include="hlsl\pp\hlsl.pp.grammar" />
   </ItemGroup>
 </Project>

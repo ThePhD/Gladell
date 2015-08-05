@@ -1,7 +1,7 @@
 #include "range.hpp"
 #include "hlsl/shaders/source.hpp"
-#include "hlsl/preprocessor/lex.hpp"
-#include "hlsl/preprocessor/parse.hpp"
+#include "hlsl/pp/lex.hpp"
+#include "hlsl/pp/parse.hpp"
 #include <jsonpp/jsonpp.hpp>
 #include <fstream>
 
@@ -26,14 +26,64 @@ inline json::value to_json( const gld::hlsl::occurrence& o ) {
 	return v;
 }
 
+inline json::value to_json( const gld::hlsl::token_value& t ) {
+	using namespace gld;
+	using gld::hlsl::token_value;
+	switch ( t.class_index() ) {
+	case token_value::index<bool>::value:
+		return json::value( t.unsafe_get<bool>() );
+	case token_value::index<int8>::value:
+		return json::value( t.unsafe_get<int8>() );
+	case token_value::index<int16>::value:
+		return json::value( t.unsafe_get<int16>() );
+	case token_value::index<int32>::value:
+		return json::value( t.unsafe_get<int32>() );
+	case token_value::index<int64>::value:
+		return json::value( static_cast<double>( t.unsafe_get<int64>() ) );
+	case token_value::index<uint8>::value:
+		return json::value( t.unsafe_get<uint8>() );
+	case token_value::index<uint16>::value:
+		return json::value( t.unsafe_get<uint16>() );
+	case token_value::index<uint32>::value:
+		return json::value( t.unsafe_get<uint32>() );
+	case token_value::index<uint64>::value:
+		return json::value( static_cast<double>( t.unsafe_get<uint64>() ) );
+	case token_value::index<float>::value:
+		return json::value( t.unsafe_get<float>() );
+	case token_value::index<double>::value:
+		return json::value( t.unsafe_get<double>() );
+	case token_value::index<string>::value:
+		return json::value( string_view( t.unsafe_get<string>() ) );
+	case token_value::index<inclusion_style>::value:
+		return json::value( to_string( t.unsafe_get<inclusion_style>() ) );
+	case token_value::index<code_point>::value:
+		return json::value( t.unsafe_get<code_point>() );
+	case token_value::index<unit>::value:
+	default:
+		break;
+	}
+	return json::null();
+}
+
 inline json::value to_json( const gld::hlsl::token& t ) {
 	gld::string_view id = to_string( t.id );
-	json::object v( { 
-		{ "id", id },
-		{ "lexeme", t.lexeme },
-		{ "where", t.where }
-	} );
-	return v;
+	if ( t.value.is<gld::unit>() ) {
+		json::object v( {
+			{ "id", id },
+			{ "lexeme", t.lexeme },
+			{ "where", t.where }
+		} );
+		return v;
+	}
+	else {
+		json::object v( {
+			{ "id", id },
+			{ "lexeme", t.lexeme },
+			{ "where", t.where },
+			{ "value", t.value }
+		} );
+		return v;
+	}
 }
 
 template <typename T>
@@ -55,10 +105,10 @@ void json_print( gld::string_view name, gld::string_view source, gld::buffer_vie
 	output << data << std::endl;
 }
 
-void lex_print( gld::string_view name, gld::string_view source ) {
-	auto tokens = gld::hlsl::preprocessor::lex( name, source );
-	json_print( name, source, tokens );
-	gld::hlsl::preprocessor::parse_tree tree = gld::hlsl::preprocessor::parse( tokens );
+void lex_print( gld::string name, gld::string_view source ) {
+	auto tokens = gld::hlsl::pp::lex( name, source );
+	json_print( name + ".pp.lex.json", source, tokens );
+	gld::hlsl::pp::parse_tree tree = gld::hlsl::pp::parse( tokens );
 
 }
 
@@ -68,6 +118,6 @@ int main( int argc, char* argv[] ) {
 	using string_view = Furrovine::string_view;
 	std::vector<string_view> arguments(argv, argv + argc);
 
-	lex_print( "pp.fluff.pre_processing.json", gld::hlsl::shaders::fluff::pre_processing );
-	lex_print( "pp.nymphbatch.json", gld::hlsl::shaders::sm40_level_93::nymph_batch );
+	lex_print( "fluff", gld::hlsl::shaders::fluff::pre_processing );
+	//lex_print( "nymphbatch.json", gld::hlsl::shaders::sm40_level_93::nymph_batch );
 }

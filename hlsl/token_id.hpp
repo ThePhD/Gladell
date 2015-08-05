@@ -54,12 +54,14 @@ namespace gld { namespace hlsl {
 		preprocessor_escaped_newline,
 		preprocessor_variadic_arguments,
 		preprocessor_define,
-		preprocessor_undef,
+		preprocessor_un_def,
 		preprocessor_if,
-		preprocessor_elif,
+		preprocessor_else_if,
 		preprocessor_else,
-		preprocessor_ifdef,
-		preprocessor_ifndef,
+		preprocessor_if_def,
+		preprocessor_if_n_def,
+		preprocessor_else_if_def,
+		preprocessor_else_if_n_def,
 		preprocessor_endif,
 		preprocessor_include,
 		preprocessor_line,
@@ -474,18 +476,22 @@ namespace gld { namespace hlsl {
 			return "preprocessor_variadic_arguments";
 		case token_id::preprocessor_define:
 			return "preprocessor_define";
-		case token_id::preprocessor_undef:
-			return "preprocessor_undef";
+		case token_id::preprocessor_un_def:
+			return "preprocessor_un_def";
 		case token_id::preprocessor_if:
 			return "preprocessor_if";
-		case token_id::preprocessor_elif:
-			return "preprocessor_elif";
+		case token_id::preprocessor_else_if:
+			return "preprocessor_else_if";
+		case token_id::preprocessor_else_if_def:
+			return "preprocessor_else_if_def";
+		case token_id::preprocessor_else_if_n_def:
+			return "preprocessor_else_if_n_def";
 		case token_id::preprocessor_else:
 			return "preprocessor_else";
-		case token_id::preprocessor_ifdef:
-			return "preprocessor_ifdef";
-		case token_id::preprocessor_ifndef:
-			return "preprocessor_ifndef";
+		case token_id::preprocessor_if_def:
+			return "preprocessor_if_def";
+		case token_id::preprocessor_if_n_def:
+			return "preprocessor_if_n_def";
 		case token_id::preprocessor_endif:
 			return "preprocessor_endif";
 		case token_id::preprocessor_include:

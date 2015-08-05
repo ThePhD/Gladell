@@ -10,18 +10,20 @@
 
 namespace gld { namespace hlsl {
 
+	typedef variant<unit,
+		string,
+		inclusion_style,
+		bool,
+		uint8, uint16, uint32, uint64,
+		int8, int16, int32, int64,
+		code_point,
+		half, float, double> token_value;
+
 	struct token {
 		token_id id;
 		occurrence where;
 		string_view lexeme;
-		variant<unit, 
-			string,
-			inclusion_style,
-			bool,
-			uint8, uint16, uint32, uint64,  
-			int8, int16, int32, int64, 
-			code_point,
-			half, float, double> value;
+		token_value value;
 
 		token( token_id id, occurrence where, string_view lexeme = {} )
 		: token( id, where, lexeme, unit() ) {
