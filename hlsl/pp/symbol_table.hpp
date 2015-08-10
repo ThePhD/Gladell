@@ -1,6 +1,7 @@
 #pragma once
 
 #include "statement.hpp"
+#include <unordered_map>
 
 namespace gld { namespace hlsl { namespace pp {
 
@@ -9,17 +10,21 @@ namespace gld { namespace hlsl { namespace pp {
 		// TODO: measure single-table with variant for items
 		// versus double-table with specifics
 		// immediate benefit of variant: adding more "Tables" is easier, backing allocator changes simpler
-		std::unordered_map<string_view, std::reference_wrapper<variable>> variables;
-		std::unordered_map<string_view, std::reference_wrapper<function>> functions;
+		std::unordered_map<string_view, std::reference_wrapper<definition>> definitions;
 
-		optional<variant<variable&, function&>> operator[]( string_view& name ) {
-			auto definesfind = variables.find( name );
-			if ( definesfind != variables.end() ) {
+		optional<definition&> operator[]( string_view& name ) {
+			auto definesfind = definitions.find( name );
+			if ( definesfind != definitions.end() ) {
 				return definesfind->second;
 			}
-			auto functionsfind = functions.find( name );
-			if ( functionsfind != functions.end() ) {
-				return functionsfind->second;
+
+			return none;
+		}
+
+		optional<const definition&> operator[]( string_view& name ) const {
+			auto definesfind = definitions.find( name );
+			if ( definesfind != definitions.end() ) {
+				return definesfind->second;
 			}
 
 			return none;

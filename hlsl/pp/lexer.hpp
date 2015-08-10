@@ -37,17 +37,18 @@ namespace gld { namespace hlsl { namespace pp {
 		std::unordered_set<code_point> symbolcharacters;
 		std::vector<token> tokens;
 
+		token_id macrotrigger;
 		bool inmacro, escaped;
 		intz escapecount;
+		intz blockid;
 
 	public:
 		lexer(string origin, string_view source) 
 		: origin(origin), source(source), begin(adl_cbegin(source)), end(adl_cend(source)), 
 			consumed( adl_cbegin( source ) ),
 			peeked( adl_cbegin( source ) ),
-			inmacro( false ),
-			escaped( false ),
-			escapecount( 0 ) {
+			inmacro( false ), escaped( false ),
+			escapecount( 0 ), blockid( 0 ) {
 			
 			symbolcharacters.insert( {
 				{ '#' },
@@ -83,15 +84,16 @@ namespace gld { namespace hlsl { namespace pp {
 				{ "...", token_id::dot_dot_dot },
 				{ "VA_ARGS", token_id::preprocessor_variadic_arguments },
 				{ "define", token_id::preprocessor_define },
+				{ "defined", token_id::preprocessor_defined },
 				{ "undef", token_id::preprocessor_un_def },
 				{ "if", token_id::preprocessor_if },
 				{ "elif", token_id::preprocessor_else_if },
 				{ "ifdef", token_id::preprocessor_if_def },
-				{ "elifndef", token_id::preprocessor_if_n_def },
-				{ "elifdef", token_id::preprocessor_if_def },
+				{ "elifndef", token_id::preprocessor_else_if_n_def },
+				{ "elifdef", token_id::preprocessor_else_if_def },
 				{ "ifndef", token_id::preprocessor_if_n_def },
 				{ "else", token_id::preprocessor_else },
-				{ "endif", token_id::preprocessor_endif },
+				{ "endif", token_id::preprocessor_end_if },
 				{ "include", token_id::preprocessor_include },
 				{ "line", token_id::preprocessor_line },
 				{ "pragma", token_id::preprocessor_pragma },
@@ -117,9 +119,9 @@ namespace gld { namespace hlsl { namespace pp {
 
 		std::vector<token> operator()() {
 			tokens.emplace_back( token_id::stream_begin, consumed.where, string_view(), origin );
-			tokens.emplace_back( token_id::preprocessor_block_begin, consumed.where );
+			tokens.emplace_back( token_id::preprocessor_block_begin, consumed.where, string_view(), ++blockid );
 			lex();
-			tokens.emplace_back( token_id::preprocessor_block_end, consumed.where );
+			tokens.emplace_back( token_id::preprocessor_block_end, consumed.where, string_view(), --blockid );
 			tokens.emplace_back( token_id::stream_end, consumed.where, string_view(), origin );
 			return std::move( tokens );
 		}
@@ -350,13 +352,22 @@ namespace gld { namespace hlsl { namespace pp {
 			return true;
 		}
 
-		void activate_macro() {
+		void activate_macro( token_id trigger ) {
+			macrotrigger = trigger;
 			tokens.emplace_back( token_id::preprocessor_statement_begin, consumed.where, view_type() );
 			inmacro = true;
 		}
 
 		void deactivate_macro() {
 			tokens.emplace_back( token_id::preprocessor_statement_end, consumed.where, view_type() );
+			switch ( macrotrigger ) {
+			case token_id::preprocessor_if:
+			case token_id::preprocessor_if_def:
+			case token_id::preprocessor_if_n_def:
+				tokens.emplace_back( token_id::preprocessor_block_begin, consumed.where, view_type() );
+				macrotrigger = token_id::whitespace;
+				break;
+			}
 			inmacro = false;
 		}
 
@@ -378,12 +389,11 @@ namespace gld { namespace hlsl { namespace pp {
 			else {
 				tokenid = pragmafind->second;
 			}
-			activate_macro();
 			tokens.emplace_back( tokenid, beginwhere, keyword );
 		}
 
 		void consume_include() {
-			std::size_t idx = tokens.size() - 1;
+			std::size_t idx = tokens.size() - 2;
 			consume_whitespace();
 			// If it's not a quotes-based string...
 			if ( consume_string( '"', '"' ) ) {
@@ -405,39 +415,32 @@ namespace gld { namespace hlsl { namespace pp {
 
 		void consume_macro( token_id preprocessorid ) {
 			switch ( preprocessorid ) {
-			case token_id::preprocessor_pragma:
-				activate_macro();
-				consume_pragma();
-				break;
-			case token_id::preprocessor_include: {
-				// TODO: should the lexer stream be
-				// modified to also preprocess included
-				// file streams?
-				// TODO: change out for better consumer for #include directives
-				consume_include();
-				activate_macro();
-				break; }
 			case token_id::preprocessor_if_def:
 			case token_id::preprocessor_if_n_def:
 			case token_id::preprocessor_if:
-				tokens.emplace_back( token_id::preprocessor_block_begin, consumed.where, view_type() );
-				activate_macro();
-				break;
-			case token_id::preprocessor_endif:
-				tokens.emplace_back( token_id::preprocessor_block_end, consumed.where, view_type() );
-				activate_macro();
-				break;
+			case token_id::preprocessor_end_if:
+			case token_id::preprocessor_else_if_def:
+			case token_id::preprocessor_else_if_n_def:
 			case token_id::preprocessor_else_if:
 			case token_id::preprocessor_else:
-				tokens.emplace_back( token_id::preprocessor_block_end, consumed.where, view_type() );
-				tokens.emplace_back( token_id::preprocessor_block_begin, consumed.where, view_type() );
-				activate_macro();
-				break;
 			case token_id::preprocessor_error:
 			case token_id::preprocessor_warning:
 			case token_id::preprocessor_define:
 			case token_id::preprocessor_un_def:
-				activate_macro();
+				activate_macro( preprocessorid );
+				break;
+			case token_id::preprocessor_pragma:
+				activate_macro( preprocessorid );
+				consume_pragma();
+				break;
+			case token_id::preprocessor_include:
+				// TODO: should the lexer stream be
+				// modified to also preprocess included
+				// file streams?
+				// TODO: change out for better consumer for #include directives
+				activate_macro( preprocessorid );
+				consume_include();
+				break;
 			default:
 				break;
 			}
@@ -449,6 +452,7 @@ namespace gld { namespace hlsl { namespace pp {
 			auto beginat = consumed.at;
 			auto beginwhere = consumed.where;
 			consume();
+			auto blockendtarget = tokens.size();
 			tokens.emplace_back( token_id::preprocessor_hash, beginwhere, source.subview( beginat, consumed.at ) );
 			if ( !consumed.available ) {
 				// TODO: throw lex error or
@@ -470,6 +474,15 @@ namespace gld { namespace hlsl { namespace pp {
 				// TODO: proper lex error
 				// Bad keyword for preprocessor (only pragmas can handle unknown preprocessors, right?)
 				throw lexer_error();
+			}
+			switch ( keywordsfind->second ) {
+			case token_id::preprocessor_end_if:
+			case token_id::preprocessor_else:
+			case token_id::preprocessor_else_if:
+			case token_id::preprocessor_else_if_def:
+			case token_id::preprocessor_else_if_n_def:
+				tokens.emplace( tokens.begin() + blockendtarget, token_id::preprocessor_block_end, beginwhere, source.subview( beginat, consumed.at ) );
+				break;
 			}
 			tokens.emplace_back( keywordsfind->second, beginwhere, keyword );
 			consume_macro( keywordsfind->second );
@@ -500,6 +513,9 @@ namespace gld { namespace hlsl { namespace pp {
 				else if ( consumed.c == 'b' ) {
 					format = lexical_numeric_format::binary;
 					consume();
+				}
+				else if ( consumed.c == 'o' ) {
+
 				}
 				else {
 					format = lexical_numeric_format::octal;
@@ -637,7 +653,7 @@ namespace gld { namespace hlsl { namespace pp {
 			// or do we create a Small Buffer (the size of a pointer) and any struct that's
 			// larger than that pointer is stored as a pointer, while rest of by-value...?
 			auto numeric = source.subview( beginat, consumed.at );
-			tokens.emplace_back( floating ? token_id::float_literal : token_id::integer_literal, beginwhere, numeric );
+			tokens.emplace_back( invalid ? token_id::invalid_literal : floating ? token_id::float_literal : token_id::integer_literal, beginwhere, numeric );
 		}
 
 		void consume_char() {
@@ -964,7 +980,11 @@ namespace gld { namespace hlsl { namespace pp {
 						tokens.emplace_back( token_id::not_equal_to, beginwhere, source.subview( beginat, consumed.at ) );
 						break;
 					}
-					tokens.emplace_back( token_id::boolean_not, beginwhere, source.subview( beginat, consumed.at ) );
+					tokens.emplace_back( token_id::expression_negation, beginwhere, source.subview( beginat, consumed.at ) );
+					break;
+				case '~':
+					consume();
+					tokens.emplace_back( token_id::boolean_complement, beginwhere, source.subview( beginat, consumed.at ) );
 					break;
 				case '(':
 					consume();
@@ -1049,7 +1069,7 @@ namespace gld { namespace hlsl { namespace pp {
 				case '@':
 					consume();
 					if ( consumed.available && consumed.c == '#' ) {
-						tokens.emplace_back( token_id::preprocessor_charizing, beginwhere, source.subview( beginat, consumed.at ) );
+						tokens.emplace_back( token_id::charizing, beginwhere, source.subview( beginat, consumed.at ) );
 						break;
 					}
 					consume_identifier();
@@ -1061,7 +1081,7 @@ namespace gld { namespace hlsl { namespace pp {
 					consume();
 					if ( consumed.available && consumed.c == '#' ) {
 						consume();
-						tokens.emplace_back( token_id::preprocessor_token_pasting, beginwhere, source.subview( beginat, consumed.at ) );
+						tokens.emplace_back( token_id::token_pasting, beginwhere, source.subview( beginat, consumed.at ) );
 						break;
 					}
 					else {

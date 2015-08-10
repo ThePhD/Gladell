@@ -16,7 +16,6 @@ namespace gld { namespace hlsl { namespace pp {
 		public: template <typename... Tn> index_ref<x> make_##x ( Tn&&... argn ) { index_ref<x> i = x##_storage.size(); x##_storage.emplace_back( std::forward<Tn>( argn )... ); return i; }
 		
 		// Expression storage
-		GLD_STORAGE( conditional );
 		GLD_STORAGE( ternary_expression );
 
 		GLD_STORAGE( not_expression );
@@ -40,14 +39,9 @@ namespace gld { namespace hlsl { namespace pp {
 		GLD_STORAGE( token_pasting_expression );
 
 		// Statement Storage
-		GLD_STORAGE( variable );
-		GLD_STORAGE( function );
-
 		GLD_STORAGE( block );
-
 		GLD_STORAGE( if_elseif_else );
-		GLD_STORAGE( pragma_construct );
-		GLD_STORAGE( error_construct );
+
 #undef GLD_STORAGE
 
 	public:

@@ -111,6 +111,9 @@ namespace gld { namespace hlsl { namespace pp {
 	struct charizing_expression;
 	struct token_pasting_expression;
 
+	struct function_call_expression;
+	struct expression_chain;
+
 	typedef variant<
 		symbol,
 		floating_literal,
@@ -143,8 +146,35 @@ namespace gld { namespace hlsl { namespace pp {
 		index_ref<negate_expression>,
 		index_ref<or_expression>,
 		index_ref<xor_expression>,
+		// errors
 		parser_error
 	> expression;
+
+	struct expression_chain : sequence {
+		std::vector<expression> expressions;
+
+		expression_chain() : expression_chain( buffer_view<const token>() ) {
+
+		}
+
+		expression_chain( buffer_view<const token> seq ) : sequence( seq ) {
+
+		}
+	};
+
+	struct conditional {
+		conditional_origin origin;
+		expression_chain operand;
+
+		conditional( conditional_origin origin, expression_chain operand ) : origin( origin ), operand( std::move( operand ) ) {
+
+		}
+
+		bool can_evaluate_to_boolean() const {
+			// TODO: token validation and the like
+			return false;
+		}
+	};
 
 	struct unary_expression {
 		expression operand;
@@ -153,20 +183,6 @@ namespace gld { namespace hlsl { namespace pp {
 	struct binary_expression {
 		expression left;
 		expression right;
-	};
-
-	struct conditional {
-		conditional_origin origin;
-		expression operand;
-
-		conditional( conditional_origin origin, expression operand ) : origin( origin ), operand( std::move( operand ) ) {
-
-		}
-
-		bool can_evaluate_to_boolean() const {
-			// TODO: token validation and the like
-			return false;
-		}
 	};
 
 	struct ternary_expression {
@@ -198,5 +214,5 @@ namespace gld { namespace hlsl { namespace pp {
 	struct stringizing_expression : unary_expression {};
 	struct charizing_expression : unary_expression {};
 	struct token_pasting_expression : unary_expression {};
-	
+
 }}}

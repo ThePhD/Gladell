@@ -1,6 +1,8 @@
 #pragma once
 
 #include "expression.hpp"
+#include "../../range.hpp"
+#include "../../optional.hpp"
 
 namespace gld { namespace hlsl { namespace pp {
 
@@ -108,16 +110,28 @@ namespace gld { namespace hlsl { namespace pp {
 
 	};
 
-	typedef variant<function, variable> definition;
+	struct error_construct : sequence {
+		string_literal text;
+		error_construct( buffer_view<const token> seq, string_literal text ) : sequence( seq ), text( text ) {
+
+		}
+	};
+
+	struct pragma_construct : sequence {
+
+		pragma_construct( buffer_view<const token> seq ) : sequence( seq ) {
+
+		}
+
+	};
+
+	typedef variant<variable, function> definition;
 
 	struct block;
 
 	struct if_elseif_else;
-	struct pragma_construct;
-	struct error_construct;
 
 	typedef variant<
-		//statement,
 		// symbols
 		symbol,
 		text_line,
@@ -125,15 +139,15 @@ namespace gld { namespace hlsl { namespace pp {
 		variable,
 		function,
 		force_line,
+		// keyword constructs
+		inclusion,
+		pragma_construct,
+		error_construct,
+		parser_error,
 		// aggregates
 		index_ref<block>,
 		// flow control
-		index_ref<if_elseif_else>,
-		// keyword constructs
-		inclusion,
-		index_ref<pragma_construct>,
-		index_ref<error_construct>,
-		parser_error
+		index_ref<if_elseif_else>
 	> statement;
 
 	struct block : sequence {
@@ -156,17 +170,6 @@ namespace gld { namespace hlsl { namespace pp {
 		if_elseif_else() : no_more_conditions( false ) {
 
 		}
-	};
-
-	struct error_construct : sequence {
-		string_literal text;
-		error_construct( buffer_view<const token> seq, string_literal text ) : sequence( seq ), text( text ) {
-
-		}
-	};
-
-	struct pragma_construct : sequence {
-		
 	};
 
 }}}

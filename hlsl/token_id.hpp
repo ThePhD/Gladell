@@ -53,6 +53,7 @@ namespace gld { namespace hlsl {
 		preprocessor_statement_end,
 		preprocessor_escaped_newline,
 		preprocessor_variadic_arguments,
+		preprocessor_defined,
 		preprocessor_define,
 		preprocessor_un_def,
 		preprocessor_if,
@@ -62,7 +63,7 @@ namespace gld { namespace hlsl {
 		preprocessor_if_n_def,
 		preprocessor_else_if_def,
 		preprocessor_else_if_n_def,
-		preprocessor_endif,
+		preprocessor_end_if,
 		preprocessor_include,
 		preprocessor_line,
 		preprocessor_pragma,
@@ -74,9 +75,9 @@ namespace gld { namespace hlsl {
 		preprocessor_pragma_warning,
 		preprocessor_pragma_message,
 		preprocessor_pragma_custom,
-		preprocessor_stringizing,
-		preprocessor_charizing,
-		preprocessor_token_pasting,
+		stringizing,
+		charizing,
+		token_pasting,
 
 		// Reserved
 		reserved_auto,
@@ -124,20 +125,21 @@ namespace gld { namespace hlsl {
 		less_than_or_equal_to,
 		greater_than_or_equal_to,
 		// Bitwise operators...
-		boolean_not,
+		boolean_complement,
 		boolean_or,
 		boolean_and,
 		boolean_xor,
 		left_shift,
 		right_shift,
 		// ~= not in the language?
-		boolean_not_assignment,
+		boolean_complement_assignment,
 		boolean_or_assignment,
 		boolean_and_assignment,
 		boolean_xor_assignment,
 		left_shift_assignment,
 		right_shift_assignment,
 		// Expression operators
+		expression_negation,
 		expression_or,
 		expression_and,
 		assignment,
@@ -171,6 +173,8 @@ namespace gld { namespace hlsl {
 		boolean_literal,
 		boolean_literal_true,
 		boolean_literal_false,
+		invalid_literal,
+
 
 		// Comments
 		block_comment_begin,
@@ -271,6 +275,7 @@ namespace gld { namespace hlsl {
 
 		// Identifier
 		identifier,
+		invalid_identifier,
 
 		// Built-in types
 		type_string,
@@ -492,8 +497,8 @@ namespace gld { namespace hlsl {
 			return "preprocessor_if_def";
 		case token_id::preprocessor_if_n_def:
 			return "preprocessor_if_n_def";
-		case token_id::preprocessor_endif:
-			return "preprocessor_endif";
+		case token_id::preprocessor_end_if:
+			return "preprocessor_end_if";
 		case token_id::preprocessor_include:
 			return "preprocessor_include";
 		case token_id::preprocessor_line:
@@ -516,12 +521,12 @@ namespace gld { namespace hlsl {
 			return "preprocessor_pragma_message";
 		case token_id::preprocessor_pragma_custom:
 			return "preprocessor_pragma_custom";
-		case token_id::preprocessor_stringizing:
+		case token_id::stringizing:
 			return "preprocessor_stringizing";
-		case token_id::preprocessor_charizing:
-			return "preprocessor_charizing";
-		case token_id::preprocessor_token_pasting:
-			return "preprocessor_token_pasting";
+		case token_id::charizing:
+			return "charizing";
+		case token_id::token_pasting:
+			return "token_pasting";
 
 			// Reserved
 		case token_id::reserved_auto:
@@ -608,8 +613,8 @@ namespace gld { namespace hlsl {
 		case token_id::greater_than_or_equal_to:
 			return "greater_than_or_equal_to";
 			// Bitwise operators...
-		case token_id::boolean_not:
-			return "boolean_not";
+		case token_id::boolean_complement:
+			return "boolean_complement";
 		case token_id::boolean_or:
 			return "boolean_or";
 		case token_id::boolean_and:
@@ -621,8 +626,8 @@ namespace gld { namespace hlsl {
 		case token_id::right_shift:
 			return "right_shift";
 			// ~= not in the language?
-		case token_id::boolean_not_assignment:
-			return "boolean_not_assignment";
+		case token_id::boolean_complement_assignment:
+			return "boolean_not_complement";
 		case token_id::boolean_or_assignment:
 			return "boolean_or_assignment";
 		case token_id::boolean_and_assignment:
@@ -634,6 +639,8 @@ namespace gld { namespace hlsl {
 		case token_id::right_shift_assignment:
 			return "right_shift_assignment";
 			// Expression operators
+		case token_id::expression_negation:
+			return "expression_negation";
 		case token_id::expression_or:
 			return "expression_or";
 		case token_id::expression_and:
@@ -670,6 +677,8 @@ namespace gld { namespace hlsl {
 			return "trailing_dots";
 
 			// Literals
+		case token_id::invalid_literal:
+			return "invalid_literal";
 		case token_id::float_literal:
 			return "float_literal";
 		case token_id::integer_literal:
@@ -876,6 +885,8 @@ namespace gld { namespace hlsl {
 			// Identifier
 		case token_id::identifier:
 			return "identifier";
+		case token_id::invalid_identifier:
+			return "invalid_identifier";
 
 			// Built-in types
 		case token_id::type_string:

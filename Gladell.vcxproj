@@ -143,6 +143,7 @@
     <ClInclude Include="hlsl\lexer.hpp" />
     <ClInclude Include="hlsl\lexer_error.hpp" />
     <ClInclude Include="hlsl\occurrence.hpp" />
+    <ClInclude Include="hlsl\operator_precedence.hpp" />
     <ClInclude Include="hlsl\parser_error.hpp" />
     <ClInclude Include="hlsl\pp\conditional_origin.hpp" />
     <ClInclude Include="hlsl\pp\construct.hpp" />
@@ -150,6 +151,7 @@
     <ClInclude Include="hlsl\pp\lex.hpp" />
     <ClInclude Include="hlsl\pp\lexer.hpp" />
     <ClInclude Include="hlsl\pp\lexer_error.hpp" />
+    <ClInclude Include="hlsl\pp\precedence.hpp" />
     <ClInclude Include="hlsl\pp\parse.hpp" />
     <ClInclude Include="hlsl\pp\parser.hpp" />
     <ClInclude Include="hlsl\parser_head.hpp" />
