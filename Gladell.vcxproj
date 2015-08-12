@@ -139,6 +139,7 @@
   <ItemGroup>
     <ClInclude Include="character_type.hpp" />
     <ClInclude Include="constant_type.hpp" />
+    <ClInclude Include="enums.hpp" />
     <ClInclude Include="hlsl\lexer_head.hpp" />
     <ClInclude Include="hlsl\lexer.hpp" />
     <ClInclude Include="hlsl\lexer_error.hpp" />
@@ -167,6 +168,7 @@
     <ClInclude Include="numeric.hpp" />
     <ClInclude Include="lexical_character_format.hpp" />
     <ClInclude Include="lexical_numeric_format.hpp" />
+    <ClInclude Include="operation.hpp" />
     <ClInclude Include="optional.hpp" />
     <ClInclude Include="range.hpp" />
     <ClInclude Include="stack.hpp" />

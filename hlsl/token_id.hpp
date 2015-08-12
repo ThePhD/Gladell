@@ -1,5 +1,8 @@
 #pragma once
 
+#include "../optional.hpp"
+#include "../operation.hpp"
+
 namespace gld { namespace hlsl {
 
 	enum class token_id {
@@ -155,7 +158,7 @@ namespace gld { namespace hlsl {
 		divide_assignment,
 		modulus_assignment,
 		// access operators
-		static_access,
+		scope_access,
 		struct_access,
 		trailing_dots,
 
@@ -599,7 +602,7 @@ namespace gld { namespace hlsl {
 			return "increment";
 		case token_id::decrement:
 			return "decrement";
-			// Comparison operators
+		// Comparison operators
 		case token_id::less_than:
 			return "less_than";
 		case token_id::greater_than:
@@ -625,9 +628,9 @@ namespace gld { namespace hlsl {
 			return "left_shift";
 		case token_id::right_shift:
 			return "right_shift";
-			// ~= not in the language?
+		// ~= not in the language?
 		case token_id::boolean_complement_assignment:
-			return "boolean_not_complement";
+			return "boolean_complement_assignment";
 		case token_id::boolean_or_assignment:
 			return "boolean_or_assignment";
 		case token_id::boolean_and_assignment:
@@ -638,7 +641,7 @@ namespace gld { namespace hlsl {
 			return "left_shift_assignment";
 		case token_id::right_shift_assignment:
 			return "right_shift_assignment";
-			// Expression operators
+		// Expression operators
 		case token_id::expression_negation:
 			return "expression_negation";
 		case token_id::expression_or:
@@ -647,7 +650,7 @@ namespace gld { namespace hlsl {
 			return "expression_and";
 		case token_id::assignment:
 			return "assignment";
-			// Math operators
+		// Math operators
 		case token_id::add:
 			return "add";
 		case token_id::subtract:
@@ -669,8 +672,8 @@ namespace gld { namespace hlsl {
 		case token_id::modulus_assignment:
 			return "modulus_assignment";
 			// access operators
-		case token_id::static_access:
-			return "static_access";
+		case token_id::scope_access:
+			return "scope_access";
 		case token_id::struct_access:
 			return "struct_access";
 		case token_id::trailing_dots:
@@ -834,7 +837,7 @@ namespace gld { namespace hlsl {
 		case token_id::keyword_volatile:
 			return "keyword_volatile";
 
-			// Input Modifiers
+		// Input Modifiers
 		case token_id::uniform:
 			return "uniform";
 		case token_id::in:
@@ -847,7 +850,7 @@ namespace gld { namespace hlsl {
 			return "unorm";
 		case token_id::snorm:
 			return "snorm";
-			// Interpolation Modifiers
+		// Interpolation Modifiers
 		case token_id::linear:
 			return "linear";
 		case token_id::centroid:
@@ -858,7 +861,7 @@ namespace gld { namespace hlsl {
 			return "noperspective";
 		case token_id::sample:
 			return "sample";
-			// variable modifiers / storage classes
+		// variable modifiers / storage classes
 		case token_id::precise:
 			return "precise";
 		case token_id::shared:
@@ -1105,6 +1108,91 @@ namespace gld { namespace hlsl {
 			throw - 1;
 			return "INVALID_ENUM_VALUE";
 		}
+	}
+
+	inline optional<operation> operator_of( token_id id, bool post = false ) {
+		switch ( id ) {
+		// Increment decrement operators
+		case token_id::increment:
+			return post ? operation::post_increment : operation::pre_increment;
+		case token_id::decrement:
+			return post ? operation::post_decrement : operation::pre_decrement;
+			// Comparison operators
+		case token_id::less_than:
+			return operation::less_than;
+		case token_id::greater_than:
+			return operation::greater_than;
+		case token_id::equal_to:
+			return operation::equal_to;
+		case token_id::not_equal_to:
+			return operation::not_equal_to;
+		case token_id::less_than_or_equal_to:
+			return operation::less_than_or_equal_to;
+		case token_id::greater_than_or_equal_to:
+			return operation::greater_than_or_equal_to;
+			// Bitwise operators...
+		case token_id::boolean_complement:
+			return operation::boolean_complement;
+		case token_id::boolean_or:
+			return operation::boolean_or;
+		case token_id::boolean_and:
+			return operation::boolean_and;
+		case token_id::boolean_xor:
+			return operation::boolean_xor;
+		case token_id::left_shift:
+			return operation::left_shift;
+		case token_id::right_shift:
+			return operation::right_shift;
+			// ~= not in the language?
+		case token_id::boolean_complement_assignment:
+			return operation::boolean_complement_assignment;
+		case token_id::boolean_or_assignment:
+			return operation::boolean_or_assignment;
+		case token_id::boolean_and_assignment:
+			return operation::boolean_and_assignment;
+		case token_id::boolean_xor_assignment:
+			return operation::boolean_xor_assignment;
+		case token_id::left_shift_assignment:
+			return operation::left_shift_assignment;
+		case token_id::right_shift_assignment:
+			return operation::right_shift_assignment;
+			// Expression operators
+		case token_id::expression_negation:
+			return operation::expression_negation;
+		case token_id::expression_or:
+			return operation::expression_or;
+		case token_id::expression_and:
+			return operation::expression_and;
+		case token_id::assignment:
+			return operation::assignment;
+			// Math operators
+		case token_id::add:
+			return operation::add;
+		case token_id::subtract:
+			return operation::subtract;
+		case token_id::multiply:
+			return operation::multiply;
+		case token_id::divide:
+			return operation::divide;
+		case token_id::modulus:
+			return operation::modulus;
+		case token_id::add_assignment:
+			return operation::add_assignment;
+		case token_id::subtract_assignment:
+			return operation::subtract_assignment;
+		case token_id::multiply_assignment:
+			return operation::multiply_assignment;
+		case token_id::divide_assignment:
+			return operation::divide_assignment;
+		case token_id::modulus_assignment:
+			return operation::modulus_assignment;
+		// access operators
+		case token_id::scope_access:
+			return operation::scope_access;
+		case token_id::struct_access:
+			return operation::struct_access;
+		}
+		return none;
 	}
 
 }}

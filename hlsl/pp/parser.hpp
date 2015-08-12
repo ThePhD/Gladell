@@ -350,24 +350,44 @@ namespace gld { namespace hlsl { namespace pp {
 			const read_head beginr = r;
 			for ( ; ; ) {
 				const read_head ebeginr = r;
-				stack<std::reference_wrapper<const token>> operations;
+				stack<operator_precedence> operations;
 				// @ ## # 
 				// * / + - ^ % | &  
 				// || &&
 				// != == < <= > >= 
 				stack<std::reference_wrapper<const token>> terms;
 				// Symbols, keywords
-				
-				for ( ;; ) {
+				optional<const token&> lasttoken;
+				optional<operation> maybeop;
+
+				for ( ; ; advance( r ) ) {
 					if ( is_macro_end( r ) ) {
 
 					}
 					switch ( r.id ) {
 					case token_id::whitespace:
-						break;
+						continue;
 					case token_id::identifier:
 						terms.push_back( r.t );
 						break;
+					case token_id::close_parenthesis:
+						// We are IMMEDIATELY done
+						// Check stack
+						break;
+					case token_id::open_parenthesis:
+					{
+						if ( !lasttoken )
+							break;
+						const token& last = lasttoken.get();
+						optional<definition&> symbol = symbols[ last.lexeme ];
+						if ( symbol && symbol->is<function>() ) {
+							// Parse function call
+						}
+						else {
+							// Parse sub-expression
+						}
+						break;
+					}
 					// binary
 					case token_id::add:
 					//case token_id::add_assignment:
@@ -394,20 +414,24 @@ namespace gld { namespace hlsl { namespace pp {
 					case token_id::expression_and:
 					case token_id::expression_or:
 					case token_id::token_pasting:
-					{
-						const operator_precedence& precedence = precedence_of( r.id ).get();
-						operations.push_back( r.t );
+						maybeop = operator_of( r.id );
+						if ( maybeop ) {
+							operation op = maybeop.get();
+							const operator_precedence& precedence = precedence_of( op );
+							operations.push_back( precedence );
+						}
 						break;
-					}
 					// Unary
 					case token_id::boolean_complement:
 					case token_id::charizing:
 					case token_id::stringizing:
-					{
-						const operator_precedence& precedence = precedence_of( r.id ).get();
-						operations.push_back( r.t );
+						maybeop = operator_of( r.id );
+						if ( maybeop ) {
+							operation op = maybeop.get();
+							const operator_precedence& precedence = precedence_of( op );
+							operations.push_back( precedence );
+						}
 						break;
-					}
 					// "Function" calls
 					case token_id::preprocessor_defined:
 					{
@@ -419,7 +443,7 @@ namespace gld { namespace hlsl { namespace pp {
 						// unexpected token in expression, expected {}
 						throw parser_error();
 					}
-					advance( r );
+					lasttoken = r.t;
 				}
 				token_view seq( ebeginr.at, r.at );
 			}

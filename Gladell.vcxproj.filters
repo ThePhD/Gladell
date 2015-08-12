@@ -134,6 +134,12 @@
     <ClInclude Include="hlsl\operator_precedence.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="operation.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="enums.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="hlsl\hlsl.grammar" />

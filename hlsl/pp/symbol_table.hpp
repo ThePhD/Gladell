@@ -12,7 +12,7 @@ namespace gld { namespace hlsl { namespace pp {
 		// immediate benefit of variant: adding more "Tables" is easier, backing allocator changes simpler
 		std::unordered_map<string_view, std::reference_wrapper<definition>> definitions;
 
-		optional<definition&> operator[]( string_view& name ) {
+		optional<definition&> operator[]( const string_view& name ) {
 			auto definesfind = definitions.find( name );
 			if ( definesfind != definitions.end() ) {
 				return definesfind->second;
@@ -21,7 +21,7 @@ namespace gld { namespace hlsl { namespace pp {
 			return none;
 		}
 
-		optional<const definition&> operator[]( string_view& name ) const {
+		optional<const definition&> operator[]( const string_view& name ) const {
 			auto definesfind = definitions.find( name );
 			if ( definesfind != definitions.end() ) {
 				return definesfind->second;

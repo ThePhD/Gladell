@@ -2,6 +2,7 @@
 
 #include "token_id.hpp"
 #include "../numeric.hpp"
+#include "../operation.hpp"
 
 namespace gld { namespace hlsl {
 
@@ -11,7 +12,7 @@ namespace gld { namespace hlsl {
 	};
 
 	struct operator_precedence {
-		token_id op;
+		operation op;
 		intz precedence;
 		associativity association;
 	};
