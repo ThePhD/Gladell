@@ -111,7 +111,7 @@ namespace gld { namespace hlsl { namespace pp {
 	struct charizing_expression;
 	struct token_pasting_expression;
 
-	struct function_call_expression;
+	struct function_call;
 	struct expression_chain;
 
 	typedef variant<
@@ -124,6 +124,8 @@ namespace gld { namespace hlsl { namespace pp {
 		// keyword operators
 		defined,
 		/* tree-like expressions */
+		// functions
+		index_ref<function_call>,
 		// preprocessor operators/expression
 		index_ref<stringizing_expression>,
 		index_ref<charizing_expression>,
@@ -160,6 +162,16 @@ namespace gld { namespace hlsl { namespace pp {
 		expression_chain( buffer_view<const token> seq ) : sequence( seq ) {
 
 		}
+	};
+
+	struct function_call : sequence {
+		std::vector<expression> parameters;
+
+		template <typename... Tn>
+		function_call( buffer_view<const token> seq, Tn&&... argn ) : sequence( seq ), parameters( std::forward<Tn>( argn )... ) {
+
+		}
+
 	};
 
 	struct conditional {

@@ -484,6 +484,8 @@ namespace gld { namespace hlsl {
 			return "preprocessor_variadic_arguments";
 		case token_id::preprocessor_define:
 			return "preprocessor_define";
+		case token_id::preprocessor_defined:
+			return "preprocessor_defined";
 		case token_id::preprocessor_un_def:
 			return "preprocessor_un_def";
 		case token_id::preprocessor_if:

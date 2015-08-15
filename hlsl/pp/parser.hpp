@@ -344,114 +344,138 @@ namespace gld { namespace hlsl { namespace pp {
 			return is_macro_end( r.id );
 		}
 
-		expression_chain parse_expression_chain( read_head& r ) {
+		function_call parse_function_call( read_head& r, const read_head& symbolstartreadhead, const function& function ) {
+			expected_error( r, token_id::open_parenthesis );
+			advance( r );
+			std::vector<expression> arguments;
+			for ( ;; advance( r ) ) {
+				switch ( r.id ) {
+				case token_id::whitespace:
+					continue;
+				case token_id::comma:
+					continue;
+				default:
+					// TODO: proper error
+					// unexpected token while parsing function call X
+					throw parser_error();
+				}
+			}
+
+			token_view seq( symbolstartreadhead.at, r.at );
+			function_call fc( seq, std::move( arguments ) );
+			return fc;
+		}
+
+		expression_chain parse_expression_chain( read_head& r, optional<conditional_origin> origin = none ) {
 			expression_chain expr( token_view( r.at, r.at ) );
 			token_view& seq = expr.tokens;
-			const read_head beginr = r;
-			for ( ; ; ) {
-				const read_head ebeginr = r;
-				stack<operator_precedence> operations;
-				// @ ## # 
-				// * / + - ^ % | &  
-				// || &&
-				// != == < <= > >= 
-				stack<std::reference_wrapper<const token>> terms;
-				// Symbols, keywords
-				optional<const token&> lasttoken;
-				optional<operation> maybeop;
+			const read_head ebeginr = r;
+			stack<operator_precedence> operations;
+			// @ ## # 
+			// * / + - ^ % | &  
+			// || &&
+			// != == < <= > >= 
+			stack<std::reference_wrapper<const token>> terms;
+			// Symbols, keywords
+			optional<const read_head&> maybelastr;
+			optional<operation> maybeop;
 
-				for ( ; ; advance( r ) ) {
-					if ( is_macro_end( r ) ) {
+			for ( ; ; advance( r ) ) {
+				bool macroend = is_macro_end( r );
+				if ( macroend ) {
 
-					}
-					switch ( r.id ) {
-					case token_id::whitespace:
-						continue;
-					case token_id::identifier:
-						terms.push_back( r.t );
-						break;
-					case token_id::close_parenthesis:
-						// We are IMMEDIATELY done
-						// Check stack
-						break;
-					case token_id::open_parenthesis:
-					{
-						if ( !lasttoken )
-							break;
-						const token& last = lasttoken.get();
-						optional<definition&> symbol = symbols[ last.lexeme ];
-						if ( symbol && symbol->is<function>() ) {
-							// Parse function call
-						}
-						else {
-							// Parse sub-expression
-						}
-						break;
-					}
-					// binary
-					case token_id::add:
-					//case token_id::add_assignment:
-					case token_id::subtract:
-					//case token_id::subtract_assignment:
-					case token_id::multiply:
-					//case token_id::multiply_assignment:
-					case token_id::divide:
-					//case token_id::divide_assignment:
-					case token_id::modulus:
-					//case token_id::modulus_assignment:
-					case token_id::equal_to:
-					case token_id::not_equal_to:
-					case token_id::greater_than:
-					case token_id::greater_than_or_equal_to:
-					case token_id::less_than:
-					case token_id::less_than_or_equal_to:
-					case token_id::boolean_and:
-					//case token_id::boolean_and_assignment:
-					case token_id::boolean_or:
-					//case token_id::boolean_or_assignment:
-					case token_id::boolean_xor:
-					//case token_id::boolean_xor_assignment:
-					case token_id::expression_and:
-					case token_id::expression_or:
-					case token_id::token_pasting:
-						maybeop = operator_of( r.id );
-						if ( maybeop ) {
-							operation op = maybeop.get();
-							const operator_precedence& precedence = precedence_of( op );
-							operations.push_back( precedence );
-						}
-						break;
-					// Unary
-					case token_id::boolean_complement:
-					case token_id::charizing:
-					case token_id::stringizing:
-						maybeop = operator_of( r.id );
-						if ( maybeop ) {
-							operation op = maybeop.get();
-							const operator_precedence& precedence = precedence_of( op );
-							operations.push_back( precedence );
-						}
-						break;
-					// "Function" calls
-					case token_id::preprocessor_defined:
-					{
-
-						break;
-					}
-					default:
-						// TODO: proper error
-						// unexpected token in expression, expected {}
-						throw parser_error();
-					}
-					lasttoken = r.t;
+					return expr;
 				}
-				token_view seq( ebeginr.at, r.at );
+				switch ( r.id ) {
+				case token_id::whitespace:
+					continue;
+				case token_id::identifier:
+					terms.push_back( r.t );
+					break;
+				case token_id::close_parenthesis:
+					// We are IMMEDIATELY done
+					// Check stack
+					break;
+				case token_id::open_parenthesis:
+				{
+					if ( !maybelastr )
+						break;
+					const read_head& lastr = maybelastr.get();
+					const token& lasttoken = lastr.t;
+					optional<definition&> symbol = symbols[ lasttoken.lexeme ];
+					if ( symbol && symbol->is<function>() ) {
+						// Parse function call
+						expression callexpression = parse_function_call( r, lastr, symbol->get<function>() );
+					}
+					else {
+						// Parse sub-expression
+						expression subexpression = parse_expression_chain( r );
+					}
+					break;
+				}
+				// binary
+				case token_id::add:
+				//case token_id::add_assignment:
+				case token_id::subtract:
+				//case token_id::subtract_assignment:
+				case token_id::multiply:
+				//case token_id::multiply_assignment:
+				case token_id::divide:
+				//case token_id::divide_assignment:
+				case token_id::modulus:
+				//case token_id::modulus_assignment:
+				case token_id::equal_to:
+				case token_id::not_equal_to:
+				case token_id::greater_than:
+				case token_id::greater_than_or_equal_to:
+				case token_id::less_than:
+				case token_id::less_than_or_equal_to:
+				case token_id::boolean_and:
+				//case token_id::boolean_and_assignment:
+				case token_id::boolean_or:
+				//case token_id::boolean_or_assignment:
+				case token_id::boolean_xor:
+				//case token_id::boolean_xor_assignment:
+				case token_id::expression_and:
+				case token_id::expression_or:
+				case token_id::token_pasting:
+					maybeop = operator_of( r.id );
+					if ( maybeop ) {
+						operation op = maybeop.get();
+						const operator_precedence& precedence = precedence_of( op );
+						operations.push_back( precedence );
+					}
+					break;
+				// Unary
+				case token_id::boolean_complement:
+				case token_id::charizing:
+				case token_id::stringizing:
+					maybeop = operator_of( r.id );
+					if ( maybeop ) {
+						operation op = maybeop.get();
+						const operator_precedence& precedence = precedence_of( op );
+						operations.push_back( precedence );
+					}
+					break;
+				// "Function" calls
+				case token_id::preprocessor_defined:
+				{
+
+					break;
+				}
+				default:
+					// TODO: proper error
+					// unexpected token in expression, expected {}
+					throw parser_error();
+				}
+				lasttoken = r.t;
 			}
+			token_view seq( ebeginr.at, r.at );
 			return expr;
 		}
 
 		conditional parse_conditional( conditional_origin origin, read_head& r ) {
-			expression_chain e = parse_expression_chain( r );
+			expression_chain e = parse_expression_chain( r, origin );
 			return conditional( origin, std::move( e ) );
 		}
 
